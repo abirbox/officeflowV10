@@ -24,7 +24,7 @@ const ACTION_BADGE = {
 const ENTITY_LABEL = {
   client: 'Client', vendor: 'Vendor', officer: 'Officer',
   post_site: 'Post Site', schedule: 'Schedule',
-  payment_so: 'Payment (SO)', wage_report: 'Wage Report',
+  payment_so: 'Payment (SO)', wage_report: 'Wage Report', invoice: 'Invoice',
 };
 
 const ALL = '__all__';

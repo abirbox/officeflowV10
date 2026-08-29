@@ -18,9 +18,10 @@ from utils.auth import get_current_user
 from utils.storage import to_public_url
 from utils.permissions import has_permission, require_permission
 from models.dispatch import DispatchInvoiceCreate, COMPLETED_STATUSES
-from routes.dispatch import get_db  # reuse the same DB dependency
+from routes.dispatch import get_db, _block_client_role  # reuse the same DB dependency
 
-router = APIRouter(prefix="/dispatch/invoices", tags=["dispatch-invoices"])
+router = APIRouter(prefix="/dispatch/invoices", tags=["dispatch-invoices"],
+                   dependencies=[Depends(_block_client_role)])
 
 
 def _now():

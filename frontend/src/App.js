@@ -40,7 +40,6 @@ import ClientProtectedRoute from "@/components/ClientProtectedRoute";
 import ClientPortalLayout from "@/layouts/ClientPortalLayout";
 import ClientDashboard from "@/pages/client/ClientDashboard";
 import ClientVendors from "@/pages/client/ClientVendors";
-import ClientReports from "@/pages/client/ClientReports";
 import "@/App.css";
 
 function App() {
@@ -132,7 +131,7 @@ function App() {
             <Route path="vendors" element={<ClientVendors />} />
             <Route path="payments" element={<PaymentSOPage />} />
             <Route path="wage-report" element={<DispatchReportsPage />} />
-            <Route path="reports" element={<ClientReports />} />
+            <Route path="invoices" element={<DispatchInvoicesPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

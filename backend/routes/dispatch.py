@@ -1642,7 +1642,7 @@ async def schedule_history(sid: str, request: Request, db=Depends(get_db)):
 # =====================================================================
 #  AUDIT TRAIL  (global — every dispatch write action)
 # =====================================================================
-AUDIT_ENTITY_TYPES = ["client", "vendor", "officer", "post_site", "schedule", "payment_so", "wage_report"]
+AUDIT_ENTITY_TYPES = ["client", "vendor", "officer", "post_site", "schedule", "payment_so", "wage_report", "invoice"]
 AUDIT_ACTIONS = ["create", "update", "delete", "cancel", "status", "confirm", "export"]
 
 

@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { api } from '@/lib/axios';
 import {
-  LayoutDashboard, Building2, CalendarDays, BarChart3,
+  LayoutDashboard, Building2, CalendarDays, FileText,
   LogOut, Menu, X, Sun, Moon, Shield, Users, CalendarClock, DollarSign, Wallet, MapPin,
 } from 'lucide-react';
 import { ScopeProvider } from '@/lib/scopedApi';
@@ -23,7 +23,7 @@ const navItems = [
   { name: 'Vendors', href: '/client-portal/vendors', icon: Building2 },
   { name: 'Payment SO', href: '/client-portal/payments', icon: DollarSign },
   { name: 'Wage Report', href: '/client-portal/wage-report', icon: Wallet },
-  { name: 'Reports', href: '/client-portal/reports', icon: BarChart3 },
+  { name: 'Invoices', href: '/client-portal/invoices', icon: FileText },
 ];
 
 const ClientPortalLayout = () => {

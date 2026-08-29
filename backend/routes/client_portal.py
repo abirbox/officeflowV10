@@ -1205,3 +1205,129 @@ async def pd_delete_payslip_record(rid: str, request: Request, db=Depends(get_db
     res = await adm.delete_payslip_record(rid, request, db)
     await _plog(db, user, "delete", "wage_report", "Payslip record", entity_id=rid)
     return res
+
+
+
+# =====================================================================
+#  INVOICES MIRROR  (client-scoped wrappers around the admin
+#  dispatch_invoices endpoints). The reused admin DispatchInvoicesPage
+#  hits /dispatch/invoices/* which the frontend rewrites to
+#  /portal/dispatch/invoices/*. Every invoice is forced to this client's
+#  own account (BILLING FROM), stamped as client-generated, and saved to
+#  the same collection admins see. Actions are logged to the audit trail.
+# =====================================================================
+import routes.dispatch_invoices as inv
+from models.dispatch import DispatchInvoiceCreate as _DispatchInvoiceCreate
+
+
+async def _own_invoice(db, cid, inv_id):
+    doc = await db.dispatch_invoices.find_one({"_id": _oid(inv_id)})
+    if not doc or str(doc.get("client_id") or "") != str(cid):
+        raise HTTPException(404, "Invoice not found")
+    return doc
+
+
+@router.post("/dispatch/invoices/preview")
+async def pd_invoice_preview(payload: _DispatchInvoiceCreate, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    payload.client_id = user["client_id"]
+    return await inv.preview_invoice(payload, request, db)
+
+
+@router.post("/dispatch/invoices/preview/pdf")
+async def pd_invoice_preview_pdf(payload: _DispatchInvoiceCreate, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    payload.client_id = user["client_id"]
+    res = await inv.preview_invoice_pdf(payload, request, db)
+    await _plog(db, user, "export", "invoice",
+                f"Invoice #{payload.invoice_number} (preview PDF)", changes={"format": "pdf"})
+    return res
+
+
+@router.post("/dispatch/invoices")
+async def pd_invoice_create(payload: _DispatchInvoiceCreate, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    payload.client_id = cid
+    out = await inv.create_invoice(payload, request, db)
+    cname = await _client_display_name(db, cid)
+    await db.dispatch_invoices.update_one({"_id": _oid(out["id"])}, {"$set": {
+        "generated_by_role": "client",
+        "generated_by_client_id": str(cid),
+        "generated_by_client_name": cname,
+    }})
+    out["generated_by_role"] = "client"
+    out["generated_by_client_name"] = cname
+    await _plog(db, user, "create", "invoice",
+                f"Invoice #{out.get('invoice_number')}", entity_id=out.get("id"),
+                changes={"total": out.get("total_amount")})
+    return out
+
+
+@router.put("/dispatch/invoices/{inv_id}")
+async def pd_invoice_update(inv_id: str, payload: _DispatchInvoiceCreate,
+                            request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    await _own_invoice(db, cid, inv_id)
+    payload.client_id = cid
+    out = await inv.update_invoice(inv_id, payload, request, db)
+    await _plog(db, user, "update", "invoice",
+                f"Invoice #{out.get('invoice_number')}", entity_id=inv_id,
+                changes={"total": out.get("total_amount")})
+    return out
+
+
+@router.get("/dispatch/invoices")
+async def pd_invoice_list(request: Request, db=Depends(get_db),
+                          client_id: str = None, vendor_id: str = None,
+                          post_site_id: str = None, date_from: str = None,
+                          date_to: str = None, invoice_number: str = None,
+                          skip: int = 0, limit: int = 50):
+    user = await get_client_user(request, db)
+    return await inv.list_invoices(request, db, client_id=user["client_id"],
+                                   vendor_id=vendor_id, post_site_id=post_site_id,
+                                   date_from=date_from, date_to=date_to,
+                                   invoice_number=invoice_number, skip=skip, limit=limit)
+
+
+@router.get("/dispatch/invoices/locations")
+async def pd_invoice_locations(request: Request, db=Depends(get_db),
+                               client_id: str = None, vendor_id: str = None,
+                               date_from: str = None, date_to: str = None):
+    user = await get_client_user(request, db)
+    return await inv.list_invoice_locations(request, db, client_id=user["client_id"],
+                                            vendor_id=vendor_id, date_from=date_from, date_to=date_to)
+
+
+@router.get("/dispatch/invoices/next-number")
+async def pd_invoice_next_number(request: Request, db=Depends(get_db)):
+    await get_client_user(request, db)
+    return await inv.next_invoice_number(request, db)
+
+
+@router.get("/dispatch/invoices/{inv_id}")
+async def pd_invoice_get(inv_id: str, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    await _own_invoice(db, user["client_id"], inv_id)
+    return await inv.get_invoice(inv_id, request, db)
+
+
+@router.get("/dispatch/invoices/{inv_id}/pdf")
+async def pd_invoice_pdf(inv_id: str, request: Request, db=Depends(get_db), inline: bool = False):
+    user = await get_client_user(request, db)
+    await _own_invoice(db, user["client_id"], inv_id)
+    res = await inv.download_invoice_pdf(inv_id, request, db, inline=inline)
+    await _plog(db, user, "export", "invoice", "Invoice PDF", entity_id=inv_id,
+                changes={"format": "pdf"})
+    return res
+
+
+@router.delete("/dispatch/invoices/{inv_id}")
+async def pd_invoice_delete(inv_id: str, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    existing = await _own_invoice(db, user["client_id"], inv_id)
+    res = await inv.delete_invoice(inv_id, request, db)
+    await _plog(db, user, "delete", "invoice",
+                f"Invoice #{existing.get('invoice_number')}", entity_id=inv_id)
+    return res

@@ -440,18 +440,44 @@ async def _check_conflict(db, officer_id, sched_date, start, end, exclude_id=Non
     return None
 
 
-async def _portal_audit(db, user, action, sid, name):
-    """Lightweight audit entry so admins can see client-made changes."""
+async def _client_display_name(db, cid):
+    """Company name of the client this account is linked to (for the audit log)."""
+    if not cid:
+        return None
     try:
+        c = await db.dispatch_clients.find_one({"_id": _oid(cid)}, {"name": 1})
+        return (c or {}).get("name")
+    except Exception:
+        return None
+
+
+async def _plog(db, user, action, entity_type, entity_name,
+                entity_id=None, changes=None):
+    """Write a client-portal action to the shared Dispatch audit trail so admins
+    have full visibility. Records action type, timestamp and the client name."""
+    try:
+        cid = user.get("client_id")
+        cname = await _client_display_name(db, cid)
         await db.dispatch_audit.insert_one({
-            "action": action, "entity_type": "schedule",
-            "entity_id": str(sid) if sid else None, "entity_name": name,
-            "changes": None, "actor_id": str(user.get("_id")),
-            "actor_name": user.get("name"), "actor_role": "client",
+            "action": action,                 # create | update | delete | export ...
+            "entity_type": entity_type,       # payment_so | wage_report | schedule ...
+            "entity_id": str(entity_id) if entity_id else None,
+            "entity_name": entity_name,
+            "changes": changes,
+            "actor_id": str(user.get("_id")),
+            "actor_name": user.get("name"),
+            "actor_role": "client",
+            "client_id": str(cid) if cid else None,
+            "client_name": cname,
             "at": _now(),
         })
     except Exception:
         pass
+
+
+async def _portal_audit(db, user, action, sid, name):
+    """Lightweight audit entry for client schedule changes."""
+    await _plog(db, user, action, "schedule", name, entity_id=sid)
 
 
 @router.post("/schedules")
@@ -574,11 +600,7 @@ async def _own_officer(db, cid, officer_id):
 # =====================================================================
 #  WAGE REPORT (scoped to this client's officers)
 # =====================================================================
-@router.get("/wage-report")
-async def portal_wage_report(request: Request, db=Depends(get_db),
-                             date_from: str = None, date_to: str = None):
-    user = await get_client_user(request, db)
-    cid = user["client_id"]
+async def _compute_wage_report(db, cid, date_from, date_to):
     if not date_from or not date_to:
         date_from, date_to = _month_bounds()
 
@@ -590,6 +612,7 @@ async def portal_wage_report(request: Request, db=Depends(get_db),
             "total_shifts": {"$sum": 1},
             "completed": {"$sum": {"$cond": [completed_cond, 1, 0]}},
             "total_hours": {"$sum": {"$cond": [completed_cond, {"$ifNull": ["$duty_hours", 0]}, 0]}},
+            "rate": {"$max": {"$ifNull": ["$duty_rate", 0]}},
             "wage": {"$sum": {"$cond": [completed_cond,
                      {"$multiply": [{"$ifNull": ["$duty_hours", 0]}, {"$ifNull": ["$duty_rate", 0]}]}, 0]}},
         }},
@@ -608,6 +631,7 @@ async def portal_wage_report(request: Request, db=Depends(get_db),
         r["officer_name"] = officer.get("name") if officer else "—"
         r["officer_code"] = officer.get("officer_code") if officer else None
         r["total_hours"] = round(r.get("total_hours", 0), 2)
+        r["rate"] = round(r.get("rate", 0), 2)
         r["wage"] = round(r.get("wage", 0), 2)
         total_hours += r["total_hours"]
         total_wage += r["wage"]
@@ -617,6 +641,105 @@ async def portal_wage_report(request: Request, db=Depends(get_db),
         "date_from": date_from, "date_to": date_to,
         "totals": {"hours": round(total_hours, 2), "wage": round(total_wage, 2), "officers": len(out)},
     }
+
+
+@router.get("/wage-report")
+async def portal_wage_report(request: Request, db=Depends(get_db),
+                             date_from: str = None, date_to: str = None):
+    user = await get_client_user(request, db)
+    return await _compute_wage_report(db, user["client_id"], date_from, date_to)
+
+
+class PortalWageRate(BaseModel):
+    rate: float
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+
+
+@router.put("/wage-report/officer/{officer_id}/rate")
+async def portal_set_wage_rate(officer_id: str, payload: PortalWageRate,
+                               request: Request, db=Depends(get_db)):
+    """Set the duty (wage) rate for one of this client's officers across the
+    schedules in the selected period. Recalculates the wage report. Logged."""
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    officer = await _own_officer(db, cid, officer_id)
+    if payload.rate < 0:
+        raise HTTPException(400, "Rate cannot be negative")
+    date_from = payload.date_from
+    date_to = payload.date_to
+    if not date_from or not date_to:
+        date_from, date_to = _month_bounds()
+    rate = round(float(payload.rate), 2)
+    res = await db.dispatch_schedules.update_many(
+        {"client_id": cid, "officer_id": officer_id, "date": {"$gte": date_from, "$lte": date_to}},
+        {"$set": {"duty_rate": rate, "updated_at": _now(),
+                  "updated_by": str(user["_id"]),
+                  "last_modified_by_name": user.get("name"),
+                  "last_modified_action": "Wage rate edited (Client Portal)",
+                  "last_modified_at": _now()}},
+    )
+    await _plog(db, user, "update", "wage_report",
+                f"{officer.get('name')} — rate set to {rate}",
+                entity_id=officer_id,
+                changes={"duty_rate": {"to": rate}, "period": f"{date_from} to {date_to}",
+                         "shifts_updated": res.modified_count})
+    return {"updated": res.modified_count, "rate": rate,
+            "date_from": date_from, "date_to": date_to}
+
+
+@router.get("/wage-report/report/{fmt}")
+async def portal_wage_report_export(fmt: str, request: Request, db=Depends(get_db),
+                                    date_from: str = None, date_to: str = None):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    data = await _compute_wage_report(db, cid, date_from, date_to)
+    client = await db.dispatch_clients.find_one({"_id": _oid(cid)})
+    cname = (client or {}).get("name", "Client")
+
+    rows = []
+    for r in data["items"]:
+        rows.append({
+            "officer_name": r.get("officer_name"),
+            "officer_code": r.get("officer_code") or "—",
+            "total_shifts": r.get("total_shifts", 0),
+            "completed": r.get("completed", 0),
+            "total_hours": r.get("total_hours", 0),
+            "rate": r.get("rate", 0),
+            "wage": r.get("wage", 0),
+        })
+    t = data["totals"]
+    rows.append({"officer_name": "TOTAL", "officer_code": "", "total_shifts": "",
+                 "completed": "", "total_hours": t.get("hours", 0), "rate": "",
+                 "wage": t.get("wage", 0)})
+
+    columns = [
+        {"key": "officer_name", "label": "Officer"},
+        {"key": "officer_code", "label": "Code"},
+        {"key": "total_shifts", "label": "Shifts"},
+        {"key": "completed", "label": "Completed"},
+        {"key": "total_hours", "label": "Hours"},
+        {"key": "rate", "label": "Rate"},
+        {"key": "wage", "label": "Wage"},
+    ]
+    title = f"Wage Report — {cname}"
+    subtitle = f"{data['date_from']} to {data['date_to']}"
+
+    await _plog(db, user, "export", "wage_report",
+                f"Wage Report ({data['date_from']} to {data['date_to']}) — {fmt.upper()}",
+                changes={"format": fmt, "officers": t.get("officers", 0)})
+
+    safe = cname.replace(" ", "-")
+    if (fmt or "pdf").lower() == "xlsx":
+        from utils.dispatch_reports import build_xlsx
+        raw = build_xlsx(rows, columns, title=title)
+        return StreamingResponse(io.BytesIO(raw),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="Wage-Report-{safe}.xlsx"'})
+    from utils.dispatch_reports import build_pdf
+    raw = build_pdf(title, subtitle, rows, columns)
+    return StreamingResponse(io.BytesIO(raw), media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="Wage-Report-{safe}.pdf"'})
 
 
 @router.get("/officers/{officer_id}/payslip")
@@ -677,6 +800,9 @@ async def portal_officer_payslip(officer_id: str, request: Request, db=Depends(g
 
     fmt = (format or "pdf").lower()
     safe = (officer.get("name") or "officer").replace(" ", "-")
+    await _plog(db, user, "export", "wage_report",
+                f"Payslip — {officer.get('name')} ({date_from} to {date_to}) — {fmt.upper()}",
+                entity_id=officer_id, changes={"format": fmt})
     if fmt == "xlsx":
         from utils.dispatch_reports import build_xlsx
         data = build_xlsx(rows, columns, title=title)
@@ -690,14 +816,49 @@ async def portal_officer_payslip(officer_id: str, request: Request, db=Depends(g
 
 
 # =====================================================================
-#  PAYMENT (SO) — records for this client's officers (view + export)
+#  PAYMENT (SO) — full CRUD for this client's officers (scoped) + export.
+#  Mirrors the admin Payment (SO) actions but every record is forced to
+#  belong to the logged-in client's own account, and every action is
+#  logged to the shared Dispatch audit trail.
 # =====================================================================
+from routes.so_payments import (
+    PaymentRecordCreate as _PaymentRecordCreate,
+    _officer_snapshot as _so_officer_snapshot,
+    _record_out as _so_record_out,
+)
+
+
 @router.get("/payments")
 async def portal_payments(request: Request, db=Depends(get_db),
                           search: str = None, date_from: str = None, date_to: str = None):
     user = await get_client_user(request, db)
     from routes.so_payments import _client_context
     return await _client_context(db, user["client_id"], search, date_from, date_to)
+
+
+@router.get("/payments/officers/search")
+async def portal_payments_officer_search(request: Request, db=Depends(get_db), q: str = ""):
+    """Officer picker for the Add Payment form — scoped to this client only."""
+    user = await get_client_user(request, db)
+    query = {"client_id": user["client_id"]}
+    if q:
+        query = {"$and": [{"client_id": user["client_id"]}, {"$or": [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"officer_code": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": q, "$options": "i"}},
+            {"contact_number": {"$regex": q, "$options": "i"}},
+            {"social_security_code": {"$regex": q, "$options": "i"}},
+        ]}]}
+    docs = await db.dispatch_officers.find(query).sort("name", 1).to_list(50)
+    return [{
+        "id": str(d["_id"]),
+        "name": d.get("name"),
+        "officer_code": d.get("officer_code"),
+        "email": d.get("email"),
+        "contact_number": d.get("contact_number"),
+        "address": d.get("address"),
+        "social_security_code": d.get("social_security_code"),
+    } for d in docs]
 
 
 @router.get("/payments/officer/{officer_id}")
@@ -709,6 +870,67 @@ async def portal_payments_officer(officer_id: str, request: Request, db=Depends(
     return await _officer_context(db, officer_id, date_from, date_to)
 
 
+@router.post("/payments/records")
+async def portal_create_payment(payload: _PaymentRecordCreate, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    officer = await _own_officer(db, cid, payload.officer_id)  # enforces ownership
+    snap = await _so_officer_snapshot(db, payload.officer_id)
+    doc = {
+        **snap,
+        "w2": payload.w2.model_dump(),
+        "w9_direct_deposit": payload.w9_direct_deposit.model_dump(),
+        "w9_zelle": payload.w9_zelle.model_dump(),
+        "created_at": _now(),
+        "created_by": str(user["_id"]),
+        "created_by_name": user.get("name"),
+        "updated_at": _now(),
+    }
+    res = await db.dispatch_so_payment_records.insert_one(doc)
+    out = _so_record_out(await db.dispatch_so_payment_records.find_one({"_id": res.inserted_id}))
+    await _plog(db, user, "create", "payment_so",
+                f"Payment for {officer.get('name')}", entity_id=res.inserted_id,
+                changes={"total": out.get("total"), "date": out.get("date")})
+    return out
+
+
+@router.put("/payments/records/{record_id}")
+async def portal_update_payment(record_id: str, payload: _PaymentRecordCreate,
+                                request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    existing = await db.dispatch_so_payment_records.find_one({"_id": _oid(record_id)})
+    if not existing or str(existing.get("client_id") or "") != str(cid):
+        raise HTTPException(404, "Record not found")
+    upd = {
+        "w2": payload.w2.model_dump(),
+        "w9_direct_deposit": payload.w9_direct_deposit.model_dump(),
+        "w9_zelle": payload.w9_zelle.model_dump(),
+        "updated_at": _now(),
+        "updated_by": str(user["_id"]),
+        "updated_by_name": user.get("name"),
+    }
+    await db.dispatch_so_payment_records.update_one({"_id": _oid(record_id)}, {"$set": upd})
+    out = _so_record_out(await db.dispatch_so_payment_records.find_one({"_id": _oid(record_id)}))
+    await _plog(db, user, "update", "payment_so",
+                f"Payment for {existing.get('officer_name')}", entity_id=record_id,
+                changes={"total": out.get("total"), "date": out.get("date")})
+    return out
+
+
+@router.delete("/payments/records/{record_id}")
+async def portal_delete_payment(record_id: str, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    existing = await db.dispatch_so_payment_records.find_one({"_id": _oid(record_id)})
+    if not existing or str(existing.get("client_id") or "") != str(cid):
+        raise HTTPException(404, "Record not found")
+    await db.dispatch_so_payment_records.delete_one({"_id": _oid(record_id)})
+    await _plog(db, user, "delete", "payment_so",
+                f"Payment for {existing.get('officer_name')}", entity_id=record_id)
+    return {"message": "Record deleted"}
+
+
 @router.get("/payments/report/{fmt}")
 async def portal_payments_report(fmt: str, request: Request, db=Depends(get_db),
                                  search: str = None, date_from: str = None, date_to: str = None):
@@ -716,6 +938,8 @@ async def portal_payments_report(fmt: str, request: Request, db=Depends(get_db),
     from routes.so_payments import _client_context
     ctx = await _client_context(db, user["client_id"], search, date_from, date_to)
     name = (ctx["client"].get("name") or "client").replace(" ", "-")
+    await _plog(db, user, "export", "payment_so",
+                f"Payment (SO) report — {fmt.upper()}", changes={"format": fmt})
     if fmt == "xlsx":
         from utils.dispatch_reports import build_client_payment_records_xlsx
         data = build_client_payment_records_xlsx(ctx=ctx)
@@ -732,10 +956,13 @@ async def portal_payments_report(fmt: str, request: Request, db=Depends(get_db),
 async def portal_payments_officer_report(officer_id: str, fmt: str, request: Request, db=Depends(get_db),
                                          date_from: str = None, date_to: str = None):
     user = await get_client_user(request, db)
-    await _own_officer(db, user["client_id"], officer_id)
+    officer = await _own_officer(db, user["client_id"], officer_id)
     from routes.so_payments import _officer_context
     ctx = await _officer_context(db, officer_id, date_from, date_to)
     name = (ctx["officer"].get("name") or "officer").replace(" ", "-")
+    await _plog(db, user, "export", "payment_so",
+                f"Payment (SO) — {officer.get('name')} — {fmt.upper()}",
+                entity_id=officer_id, changes={"format": fmt})
     if fmt == "xlsx":
         from utils.dispatch_reports import build_officer_payment_records_xlsx
         data = build_officer_payment_records_xlsx(ctx=ctx)

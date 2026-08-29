@@ -35,4 +35,10 @@ full code unchanged. After preview we will make changes. Planned first change: n
 
 ## Backlog / next
 - P1: Confirm dashboard + module flows via a real testing pass once user requests changes.
-- P1: New features (user-requested next step) — to be scoped.
+
+## Feature: Client Portal — Wage Reports edit/export + Payment SO CRUD + admin audit (2026-06)
+- **Payment SO (client-scoped full CRUD)**: `/api/portal/payments/records` POST/PUT/DELETE, `/api/portal/payments/officers/search` (scoped to own officers), per-officer + client exports. Frontend `ClientPaymentSO.js` rewritten with Add/Edit/Delete + officer detail view.
+- **Wage Report edit/export**: `PUT /api/portal/wage-report/officer/{id}/rate` (sets duty rate across the officer's shifts in the period, recalculates wages), `GET /api/portal/wage-report/report/{fmt}` (PDF/XLSX). Frontend `ClientWageReport.js` adds Rate column, Edit Rate dialog, report export buttons. All scoped to the client's own account with ownership checks (404 on non-owned).
+- **Audit visibility**: new `_plog()` in client_portal.py writes every client action (create/update/delete/export on payment_so & wage_report) to `dispatch_audit` with `client_name`. `dispatch.py` AUDIT_ENTITY_TYPES += payment_so, wage_report; AUDIT_ACTIONS += export. Admin `DispatchAuditPage.js` shows "Client: <name>", export badge, new entity labels.
+- Verified: testing agent iteration_14 — backend 9/9 pytest, frontend 100%, no bugs.
+

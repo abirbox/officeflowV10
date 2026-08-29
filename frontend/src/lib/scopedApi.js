@@ -14,10 +14,15 @@ const ScopeContext = createContext('/dispatch');
 
 function makeScoped(base) {
   if (!base || base === '/dispatch') return api;
-  const rewrite = (url) =>
-    typeof url === 'string' && url.startsWith('/dispatch')
-      ? base + url.slice('/dispatch'.length)
-      : url;
+  const portalRoot = base.replace(/\/dispatch$/, ''); // e.g. '/portal'
+  const rewrite = (url) => {
+    if (typeof url !== 'string') return url;
+    if (url.startsWith('/dispatch')) return base + url.slice('/dispatch'.length);
+    // Payment (SO) lives at its own top-level admin router; scope it under the
+    // same portal root so the reused PaymentSOPage hits /portal/so-payments/*.
+    if (url.startsWith('/so-payments')) return portalRoot + url;
+    return url;
+  };
   const wrap = (method) => (url, ...rest) => api[method](rewrite(url), ...rest);
   return {
     get: wrap('get'),

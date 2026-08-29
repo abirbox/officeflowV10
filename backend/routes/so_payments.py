@@ -19,9 +19,10 @@ import io
 from utils.auth import get_current_user
 from utils.permissions import require_permission
 from utils.storage import to_public_url
-from routes.dispatch import get_db, _oid, _doc_out
+from routes.dispatch import get_db, _oid, _doc_out, _block_client_role
 
-router = APIRouter(prefix="/so-payments", tags=["Payment (SO)"])
+router = APIRouter(prefix="/so-payments", tags=["Payment (SO)"],
+                   dependencies=[Depends(_block_client_role)])
 
 
 class PayComponent(BaseModel):

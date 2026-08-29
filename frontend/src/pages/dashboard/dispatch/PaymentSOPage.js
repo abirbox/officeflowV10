@@ -12,7 +12,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../../../components/ui/select';
-import api, { formatApiErrorDetail } from '../../../lib/axios';
+import { formatApiErrorDetail } from '../../../lib/axios';
+import { useScopedApi } from '../../../lib/scopedApi';
 import { dhakaDateIso } from '../../../lib/datetime';
 
 const money = (v) => `$${Number(v || 0).toFixed(2)}`;
@@ -116,6 +117,7 @@ const PaymentSOPage = () => {
 
 /* ----------------------------- Landing: Client list ---------------------- */
 const ClientList = ({ onOpen }) => {
+  const api = useScopedApi();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -192,6 +194,7 @@ const ClientList = ({ onOpen }) => {
 
 /* ----------------------------- Client view ------------------------------- */
 const ClientView = ({ client, onBack, onOpenOfficer }) => {
+  const api = useScopedApi();
   const [ctx, setCtx] = useState(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -357,6 +360,7 @@ const ClientView = ({ client, onBack, onOpenOfficer }) => {
 
 /* --------------------------- Officer detail view ------------------------- */
 const OfficerDetail = ({ officer, onBack }) => {
+  const api = useScopedApi();
   const [ctx, setCtx] = useState(null);
   const [loading, setLoading] = useState(false);
   const [range, setRange] = useState({ date_from: '', date_to: '' });
@@ -521,6 +525,7 @@ const OfficerDetail = ({ officer, onBack }) => {
 
 /* --------------------------- Add / Edit dialog --------------------------- */
 const PaymentDialog = ({ open, setOpen, client, fixedOfficer, editingRecord, onSaved }) => {
+  const api = useScopedApi();
   const [form, setForm] = useState(emptyPayForm());
   const [saving, setSaving] = useState(false);
 
@@ -635,6 +640,7 @@ const PayRow = ({ label, testid, comp, onChange }) => (
 
 /* Searchable officer picker (by name, code, email, phone, SSC) */
 const OfficerSearch = ({ clientId, selected, onSelect }) => {
+  const api = useScopedApi();
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);

@@ -80,6 +80,7 @@ CLIENT_DISPATCH_PERMS = [
     "dispatch.officers.view", "dispatch.officers.create", "dispatch.officers.edit", "dispatch.officers.delete",
     "dispatch.post_sites.view", "dispatch.post_sites.create", "dispatch.post_sites.edit", "dispatch.post_sites.delete",
     "dispatch.confirmation.view", "dispatch.confirmation.manage", "dispatch.confirmation.history",
+    "dispatch.payment_so.view",
     # Wage Report (reused admin DispatchReportsPage) — client-scoped via the
     # /portal/dispatch/reports wrappers. Direct /api/dispatch/* stays blocked.
     "dispatch.reports.view", "dispatch.reports.export",
@@ -602,164 +603,126 @@ async def _own_officer(db, cid, officer_id):
 
 
 
+
 # =====================================================================
-#  PAYMENT (SO) — full CRUD for this client's officers (scoped) + export.
-#  Mirrors the admin Payment (SO) actions but every record is forced to
-#  belong to the logged-in client's own account, and every action is
-#  logged to the shared Dispatch audit trail.
+#  PAYMENT (SO) MIRROR  (client-scoped wrappers around the admin
+#  so_payments endpoints). The reused admin PaymentSOPage hits
+#  /so-payments/* which the frontend rewrites to /portal/so-payments/*.
+#  Every wrapper forces the logged-in client's scope and validates
+#  ownership before delegating to the exact same admin route function.
+#  Mutations and exports are logged to the shared Dispatch audit trail.
 # =====================================================================
-from routes.so_payments import (
-    PaymentRecordCreate as _PaymentRecordCreate,
-    _officer_snapshot as _so_officer_snapshot,
-    _record_out as _so_record_out,
-)
+import routes.so_payments as sop
+from routes.so_payments import PaymentRecordCreate as _PaymentRecordCreate
 
 
-@router.get("/payments")
-async def portal_payments(request: Request, db=Depends(get_db),
-                          search: str = None, date_from: str = None, date_to: str = None):
+async def _own_payment_record(db, cid, record_id):
+    doc = await db.dispatch_so_payment_records.find_one({"_id": _oid(record_id)})
+    if not doc or str(doc.get("client_id") or "") != str(cid):
+        raise HTTPException(404, "Record not found")
+    return doc
+
+
+@router.get("/so-payments/clients")
+async def psp_clients(request: Request, db=Depends(get_db), search: str = ""):
+    """Landing list — only ever the logged-in client's own account."""
     user = await get_client_user(request, db)
-    from routes.so_payments import _client_context
-    return await _client_context(db, user["client_id"], search, date_from, date_to)
+    cid = str(user["client_id"])
+    rows = await sop.list_payment_clients(request, db, search=search)
+    return [c for c in rows if str(c.get("id")) == cid]
 
 
-@router.get("/payments/officers/search")
-async def portal_payments_officer_search(request: Request, db=Depends(get_db), q: str = ""):
-    """Officer picker for the Add Payment form — scoped to this client only."""
+@router.get("/so-payments/officers/search")
+async def psp_officers_search(request: Request, db=Depends(get_db),
+                              client_id: str = None, q: str = ""):
     user = await get_client_user(request, db)
-    query = {"client_id": user["client_id"]}
-    if q:
-        query = {"$and": [{"client_id": user["client_id"]}, {"$or": [
-            {"name": {"$regex": q, "$options": "i"}},
-            {"officer_code": {"$regex": q, "$options": "i"}},
-            {"email": {"$regex": q, "$options": "i"}},
-            {"contact_number": {"$regex": q, "$options": "i"}},
-            {"social_security_code": {"$regex": q, "$options": "i"}},
-        ]}]}
-    docs = await db.dispatch_officers.find(query).sort("name", 1).to_list(50)
-    return [{
-        "id": str(d["_id"]),
-        "name": d.get("name"),
-        "officer_code": d.get("officer_code"),
-        "email": d.get("email"),
-        "contact_number": d.get("contact_number"),
-        "address": d.get("address"),
-        "social_security_code": d.get("social_security_code"),
-    } for d in docs]
+    # Force this client's scope regardless of any client_id the UI sends.
+    return await sop.search_officers(request, db, client_id=user["client_id"], q=q)
 
 
-@router.get("/payments/officer/{officer_id}")
-async def portal_payments_officer(officer_id: str, request: Request, db=Depends(get_db),
-                                  date_from: str = None, date_to: str = None):
+@router.get("/so-payments/records")
+async def psp_records(request: Request, db=Depends(get_db), client_id: str = None,
+                      search: str = None, date_from: str = None, date_to: str = None):
+    user = await get_client_user(request, db)
+    return await sop.list_records(request, db, client_id=user["client_id"],
+                                  search=search, date_from=date_from, date_to=date_to)
+
+
+@router.get("/so-payments/records/officer")
+async def psp_officer_records(request: Request, db=Depends(get_db), officer_id: str = None,
+                              date_from: str = None, date_to: str = None):
     user = await get_client_user(request, db)
     await _own_officer(db, user["client_id"], officer_id)
-    from routes.so_payments import _officer_context
-    return await _officer_context(db, officer_id, date_from, date_to)
+    return await sop.officer_records(request, db, officer_id=officer_id,
+                                     date_from=date_from, date_to=date_to)
 
 
-@router.post("/payments/records")
-async def portal_create_payment(payload: _PaymentRecordCreate, request: Request, db=Depends(get_db)):
+@router.post("/so-payments/records")
+async def psp_create_record(payload: _PaymentRecordCreate, request: Request, db=Depends(get_db)):
     user = await get_client_user(request, db)
-    cid = user["client_id"]
-    officer = await _own_officer(db, cid, payload.officer_id)  # enforces ownership
-    snap = await _so_officer_snapshot(db, payload.officer_id)
-    doc = {
-        **snap,
-        "w2": payload.w2.model_dump(),
-        "w9_direct_deposit": payload.w9_direct_deposit.model_dump(),
-        "w9_zelle": payload.w9_zelle.model_dump(),
-        "created_at": _now(),
-        "created_by": str(user["_id"]),
-        "created_by_name": user.get("name"),
-        "updated_at": _now(),
-    }
-    res = await db.dispatch_so_payment_records.insert_one(doc)
-    out = _so_record_out(await db.dispatch_so_payment_records.find_one({"_id": res.inserted_id}))
+    officer = await _own_officer(db, user["client_id"], payload.officer_id)
+    out = await sop.create_record(payload, request, db)
     await _plog(db, user, "create", "payment_so",
-                f"Payment for {officer.get('name')}", entity_id=res.inserted_id,
+                f"Payment for {officer.get('name')}", entity_id=out.get("id"),
                 changes={"total": out.get("total"), "date": out.get("date")})
     return out
 
 
-@router.put("/payments/records/{record_id}")
-async def portal_update_payment(record_id: str, payload: _PaymentRecordCreate,
-                                request: Request, db=Depends(get_db)):
+@router.put("/so-payments/records/{record_id}")
+async def psp_update_record(record_id: str, payload: _PaymentRecordCreate,
+                            request: Request, db=Depends(get_db)):
     user = await get_client_user(request, db)
-    cid = user["client_id"]
-    existing = await db.dispatch_so_payment_records.find_one({"_id": _oid(record_id)})
-    if not existing or str(existing.get("client_id") or "") != str(cid):
-        raise HTTPException(404, "Record not found")
-    upd = {
-        "w2": payload.w2.model_dump(),
-        "w9_direct_deposit": payload.w9_direct_deposit.model_dump(),
-        "w9_zelle": payload.w9_zelle.model_dump(),
-        "updated_at": _now(),
-        "updated_by": str(user["_id"]),
-        "updated_by_name": user.get("name"),
-    }
-    await db.dispatch_so_payment_records.update_one({"_id": _oid(record_id)}, {"$set": upd})
-    out = _so_record_out(await db.dispatch_so_payment_records.find_one({"_id": _oid(record_id)}))
+    existing = await _own_payment_record(db, user["client_id"], record_id)
+    await _own_officer(db, user["client_id"], payload.officer_id)
+    out = await sop.update_record(record_id, payload, request, db)
     await _plog(db, user, "update", "payment_so",
                 f"Payment for {existing.get('officer_name')}", entity_id=record_id,
                 changes={"total": out.get("total"), "date": out.get("date")})
     return out
 
 
-@router.delete("/payments/records/{record_id}")
-async def portal_delete_payment(record_id: str, request: Request, db=Depends(get_db)):
+@router.delete("/so-payments/records/{record_id}")
+async def psp_delete_record(record_id: str, request: Request, db=Depends(get_db)):
     user = await get_client_user(request, db)
-    cid = user["client_id"]
-    existing = await db.dispatch_so_payment_records.find_one({"_id": _oid(record_id)})
-    if not existing or str(existing.get("client_id") or "") != str(cid):
-        raise HTTPException(404, "Record not found")
-    await db.dispatch_so_payment_records.delete_one({"_id": _oid(record_id)})
+    existing = await _own_payment_record(db, user["client_id"], record_id)
+    res = await sop.delete_record(record_id, request, db)
     await _plog(db, user, "delete", "payment_so",
                 f"Payment for {existing.get('officer_name')}", entity_id=record_id)
-    return {"message": "Record deleted"}
+    return res
 
 
-@router.get("/payments/report/{fmt}")
-async def portal_payments_report(fmt: str, request: Request, db=Depends(get_db),
-                                 search: str = None, date_from: str = None, date_to: str = None):
+@router.get("/so-payments/records/report/{kind}")
+async def psp_client_report(kind: str, request: Request, db=Depends(get_db),
+                            client_id: str = None, search: str = None,
+                            date_from: str = None, date_to: str = None):
     user = await get_client_user(request, db)
-    from routes.so_payments import _client_context
-    ctx = await _client_context(db, user["client_id"], search, date_from, date_to)
-    name = (ctx["client"].get("name") or "client").replace(" ", "-")
+    cid = user["client_id"]
+    if kind == "xlsx":
+        res = await sop.client_report_xlsx(request, db, client_id=cid, search=search,
+                                           date_from=date_from, date_to=date_to)
+    else:
+        res = await sop.client_report_pdf(request, db, client_id=cid, search=search,
+                                          date_from=date_from, date_to=date_to)
     await _plog(db, user, "export", "payment_so",
-                f"Payment (SO) report — {fmt.upper()}", changes={"format": fmt})
-    if fmt == "xlsx":
-        from utils.dispatch_reports import build_client_payment_records_xlsx
-        data = build_client_payment_records_xlsx(ctx=ctx)
-        return StreamingResponse(io.BytesIO(data),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="Payment-{name}.xlsx"'})
-    from utils.dispatch_reports import build_client_payment_records_pdf
-    data = build_client_payment_records_pdf(ctx=ctx)
-    return StreamingResponse(io.BytesIO(data), media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="Payment-{name}.pdf"'})
+                f"Payment (SO) report — {kind.upper()}", changes={"format": kind})
+    return res
 
 
-@router.get("/payments/officer/{officer_id}/report/{fmt}")
-async def portal_payments_officer_report(officer_id: str, fmt: str, request: Request, db=Depends(get_db),
-                                         date_from: str = None, date_to: str = None):
+@router.get("/so-payments/records/officer/report/{kind}")
+async def psp_officer_report(kind: str, request: Request, db=Depends(get_db),
+                             officer_id: str = None, date_from: str = None, date_to: str = None):
     user = await get_client_user(request, db)
     officer = await _own_officer(db, user["client_id"], officer_id)
-    from routes.so_payments import _officer_context
-    ctx = await _officer_context(db, officer_id, date_from, date_to)
-    name = (ctx["officer"].get("name") or "officer").replace(" ", "-")
+    if kind == "xlsx":
+        res = await sop.officer_report_xlsx(request, db, officer_id=officer_id,
+                                            date_from=date_from, date_to=date_to)
+    else:
+        res = await sop.officer_report_pdf(request, db, officer_id=officer_id,
+                                           date_from=date_from, date_to=date_to)
     await _plog(db, user, "export", "payment_so",
-                f"Payment (SO) — {officer.get('name')} — {fmt.upper()}",
-                entity_id=officer_id, changes={"format": fmt})
-    if fmt == "xlsx":
-        from utils.dispatch_reports import build_officer_payment_records_xlsx
-        data = build_officer_payment_records_xlsx(ctx=ctx)
-        return StreamingResponse(io.BytesIO(data),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="Payment-{name}.xlsx"'})
-    from utils.dispatch_reports import build_officer_payment_records_pdf
-    data = build_officer_payment_records_pdf(ctx=ctx)
-    return StreamingResponse(io.BytesIO(data), media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="Payment-{name}.pdf"'})
+                f"Payment (SO) — {officer.get('name')} — {kind.upper()}",
+                entity_id=officer_id, changes={"format": kind})
+    return res
 
 
 # =====================================================================

@@ -41,7 +41,6 @@ import ClientPortalLayout from "@/layouts/ClientPortalLayout";
 import ClientDashboard from "@/pages/client/ClientDashboard";
 import ClientVendors from "@/pages/client/ClientVendors";
 import ClientReports from "@/pages/client/ClientReports";
-import ClientPaymentSO from "@/pages/client/ClientPaymentSO";
 import "@/App.css";
 
 function App() {
@@ -131,7 +130,7 @@ function App() {
             <Route path="officers" element={<OfficersPage />} />
             <Route path="post-sites" element={<PostSitesPage />} />
             <Route path="vendors" element={<ClientVendors />} />
-            <Route path="payments" element={<ClientPaymentSO />} />
+            <Route path="payments" element={<PaymentSOPage />} />
             <Route path="wage-report" element={<DispatchReportsPage />} />
             <Route path="reports" element={<ClientReports />} />
           </Route>

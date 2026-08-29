@@ -1,0 +1,31 @@
+{
+  "summary": "Verified end-to-end that /client-portal/payments reuses the EXACT admin PaymentSOPage component, scoped to the logged-in client, and all client Payment (SO) actions are audited. Backend pytest 8/8 pass (test_iter16_client_payment_so_reuse.py). Frontend Playwright: client Payment SO landing renders <PaymentSOPage/> with data-testid payment-so-page and shows exactly one client row 'Arseas Security Services INC' (no 'New Client'). Clicking View opens so-client-view with Add New Payment, search, date filter, PDF/Excel buttons. Add New Payment officer search (with bogus injected client_id) still returns only Arseas' officer 'Abir Vai'. Full CRUD verified: create ($99.50 W2), open officer detail (so-officer-detail, 7 entries), edit (bumped to $111.11), delete (with confirm), all via /portal/so-payments/*. Officer-level PDF/Excel and client-level PDF/Excel downloads succeed (filenames 'Payment-Abir Vai.pdf/.xlsx', 'Payment-Arseas Security Services INC.pdf/.xlsx'). All 14 network calls hit /api/portal/so-payments/* and returned 200. Admin regression: /dashboard/dispatch/payment-so still lists both clients (Arseas + New Client). Admin Dispatch Audit Log page shows Payment (SO) create/update/delete/export rows with 'Arseas Security Services INC' under the actor. Security: direct client calls to /api/so-payments/clients, /records, /officers/search all return 403.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter16_client_payment_so_reuse.py",
+    "/app/test_reports/pytest/iter16.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "psp_officers_search in client_portal.py correctly ignores the client_id query param and forces user['client_id'] — verified by injecting a bogus ObjectId. Good defense-in-depth.",
+    "psp_update_record captures existing.officer_name BEFORE calling sop.update_record, so the audit label survives officer swaps. Also correctly re-checks _own_officer against the NEW officer_id in the payload to block cross-client moves. Nice.",
+    "_plog swallows exceptions silently (carried over from prior iterations) — a broken audit insert would go unnoticed. Recommend at least a logger.warning.",
+    "psp_client_report/psp_officer_report log AFTER the export call, so a failed export won't produce an audit row. For security auditing consider logging attempted exports too (with a status field)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter16_client_payment_so_reuse.py",
+    "/app/test_reports/iteration_16.json"
+  ],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "admin@example.com/admin123 ; info@arseas.com/Client@123",
+  "seed_data_creation": "Created + deleted 1 Payment (SO) record for Abir Vai during CRUD test; also updated one existing seed record ($99.50 -> $111.11) which was then deleted. Net: no residual test records (create+delete cancel out). Added 4 audit rows (create, update, delete, export x4) to dispatch_audit — expected side effect.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reuse pattern is now applied to Payment (SO) identically to Wage Report (iter15). Route: /client-portal/payments -> <PaymentSOPage/> under <ScopeProvider base='/portal/dispatch'>. scopedApi rewrites /so-payments -> /portal/so-payments. Backend wrappers in /app/backend/routes/client_portal.py lines 626-725 (psp_*). Admin router /app/backend/routes/so_payments.py has dependencies=[Depends(_block_client_role)] making direct /api/so-payments/* return 403 for role=client. Data-testids: payment-so-page, so-client-row-{id}, so-client-view-{id}, so-client-view, so-add-new-payment, so-download-pdf/excel, so-record-search, so-payment-dialog, so-officer-search-input, so-officer-option-{id}, so-w2-date, so-w2-amount, so-payment-submit, so-officer-detail, so-entry-row-{id}, so-entry-edit-{id}, so-entry-delete-{id}, so-officer-download-pdf/excel, so-officer-back. Note the client view API GET /portal/so-payments/records defaults to 'All Time' date filter and requires the internal client_id (auto-supplied by scopedApi from PaymentSOPage state after landing click).",
+  "rca of the issue": "No bugs found in this iteration."
+}

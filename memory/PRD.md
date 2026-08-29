@@ -49,3 +49,9 @@ full code unchanged. After preview we will make changes. Planned first change: n
 - Admin `/dashboard/dispatch/reports` unchanged (global, unscoped). Direct `/api/dispatch/*` stays 403 for role=client.
 - Verified: testing agent iteration_15 — backend 11/11 pytest, frontend 100%, no bugs (reuse, scoping, exports+audit, admin regression, security all pass).
 
+## Feature: Client Payment SO now REUSES the admin component (2026-06)
+- Client portal `/client-portal/payments` now renders the **exact admin `PaymentSOPage`** (deleted the duplicate `ClientPaymentSO.js`). Same client-list → officer-records → officer-detail flow, Add/Edit/Delete entries, officer search, PDF/Excel exports.
+- Reuse: `PaymentSOPage`'s 5 sub-components use `useScopedApi()`; `scopedApi.makeScoped` now also rewrites `/so-payments/*` → `/portal/so-payments/*` under the portal root.
+- Backend: `/portal/so-payments/*` wrappers (psp_*) force the client's scope, validate officer/record ownership, and log create/update/delete/export to `dispatch_audit` (entity payment_so) with `client_name`. `CLIENT_DISPATCH_PERMS` += `dispatch.payment_so.view`. Removed the old iteration-14 `/portal/payments/*` endpoints. `so_payments` router now has `_block_client_role` so direct `/api/so-payments/*` is 403 for clients.
+- Admin Payment SO unchanged (lists all clients). Verified: testing agent iteration_16 — backend 8/8 pytest, frontend 100%, no bugs.
+

@@ -36,3 +36,7 @@ export const useScopedApi = () => {
   const base = useContext(ScopeContext);
   return React.useMemo(() => makeScoped(base), [base]);
 };
+
+/** Raw scope base string ('/dispatch' for admin, '/portal/dispatch' in the
+ * Client Portal). Use for building non-axios URLs like window.open() targets. */
+export const useScopeBase = () => useContext(ScopeContext);

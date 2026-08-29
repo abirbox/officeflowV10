@@ -1894,14 +1894,19 @@ async def _resolve_search_ids(db, group_field: str, q: str):
 
 
 async def _aggregate_by(db, group_field: str, date_from: str, date_to: str,
-                        include_financial: bool, search_ids=None):
+                        include_financial: bool, search_ids=None, client_id=None):
     """Aggregation helper for by-officer / by-post / by-client / by-vendor.
 
     Hours, billing_amount and cost_amount are summed **only for shifts whose
     shift_status is Clocked In / Clocked Out** so reports reflect actual
     worked/paid hours (a Clocked In shift already counts as complete).
+
+    When ``client_id`` is given the aggregation is restricted to that client
+    (used by the client-portal wrappers to scope every report to one account).
     """
     match = {"date": {"$gte": date_from, "$lte": date_to}}
+    if client_id:
+        match["client_id"] = client_id
     if search_ids is not None:
         match[group_field] = {"$in": search_ids}
     completed_cond = {"$in": ["$shift_status", COMPLETED_STATUSES]}
@@ -1931,7 +1936,7 @@ async def _aggregate_by(db, group_field: str, date_from: str, date_to: str,
 @router.get("/reports/by-officer")
 async def report_by_officer(request: Request, db=Depends(get_db),
                             date_from: str = None, date_to: str = None,
-                            q: str = None):
+                            q: str = None, client_id: str = None):
     user = await get_current_user(request, db)
     require_permission(user, "dispatch.reports.view")
     date_from, date_to = _validate_date_range(date_from, date_to)
@@ -1939,7 +1944,7 @@ async def report_by_officer(request: Request, db=Depends(get_db),
     search_ids = await _resolve_search_ids(db, "officer_id", q)
     if search_ids == []:
         return {"items": [], "date_from": date_from, "date_to": date_to, "count": 0}
-    rows = await _aggregate_by(db, "officer_id", date_from, date_to, fin, search_ids)
+    rows = await _aggregate_by(db, "officer_id", date_from, date_to, fin, search_ids, client_id=client_id)
     ids = {r["_id"] for r in rows if r["_id"]}
     officers = await _resolve_names(db, ids, "dispatch_officers")
     out = []
@@ -1960,7 +1965,7 @@ async def report_by_officer(request: Request, db=Depends(get_db),
 @router.get("/reports/by-post-site")
 async def report_by_post_site(request: Request, db=Depends(get_db),
                               date_from: str = None, date_to: str = None,
-                              q: str = None):
+                              q: str = None, client_id: str = None):
     user = await get_current_user(request, db)
     require_permission(user, "dispatch.reports.view")
     date_from, date_to = _validate_date_range(date_from, date_to)
@@ -1968,7 +1973,7 @@ async def report_by_post_site(request: Request, db=Depends(get_db),
     search_ids = await _resolve_search_ids(db, "post_site_id", q)
     if search_ids == []:
         return {"items": [], "date_from": date_from, "date_to": date_to, "count": 0}
-    rows = await _aggregate_by(db, "post_site_id", date_from, date_to, fin, search_ids)
+    rows = await _aggregate_by(db, "post_site_id", date_from, date_to, fin, search_ids, client_id=client_id)
     ids = {r["_id"] for r in rows if r["_id"]}
     obj_ids = [ObjectId(i) for i in ids if ObjectId.is_valid(i)]
     post_docs = await db.dispatch_post_sites.find(
@@ -1998,7 +2003,7 @@ async def report_by_post_site(request: Request, db=Depends(get_db),
 @router.get("/reports/by-client")
 async def report_by_client(request: Request, db=Depends(get_db),
                            date_from: str = None, date_to: str = None,
-                           q: str = None):
+                           q: str = None, client_id: str = None):
     user = await get_current_user(request, db)
     require_permission(user, "dispatch.reports.view")
     date_from, date_to = _validate_date_range(date_from, date_to)
@@ -2006,7 +2011,7 @@ async def report_by_client(request: Request, db=Depends(get_db),
     search_ids = await _resolve_search_ids(db, "client_id", q)
     if search_ids == []:
         return {"items": [], "date_from": date_from, "date_to": date_to, "count": 0}
-    rows = await _aggregate_by(db, "client_id", date_from, date_to, fin, search_ids)
+    rows = await _aggregate_by(db, "client_id", date_from, date_to, fin, search_ids, client_id=client_id)
     ids = {r["_id"] for r in rows if r["_id"]}
     clients = await _resolve_names(db, ids, "dispatch_clients")
     out = []
@@ -2026,7 +2031,7 @@ async def report_by_client(request: Request, db=Depends(get_db),
 @router.get("/reports/by-vendor")
 async def report_by_vendor(request: Request, db=Depends(get_db),
                            date_from: str = None, date_to: str = None,
-                           q: str = None):
+                           q: str = None, client_id: str = None):
     user = await get_current_user(request, db)
     require_permission(user, "dispatch.reports.view")
     date_from, date_to = _validate_date_range(date_from, date_to)
@@ -2034,7 +2039,7 @@ async def report_by_vendor(request: Request, db=Depends(get_db),
     search_ids = await _resolve_search_ids(db, "vendor_id", q)
     if search_ids == []:
         return {"items": [], "date_from": date_from, "date_to": date_to, "count": 0}
-    rows = await _aggregate_by(db, "vendor_id", date_from, date_to, fin, search_ids)
+    rows = await _aggregate_by(db, "vendor_id", date_from, date_to, fin, search_ids, client_id=client_id)
     ids = {r["_id"] for r in rows if r["_id"]}
     vendors = await _resolve_names(db, ids, "dispatch_vendors")
     out = []
@@ -2491,7 +2496,7 @@ async def report_entity_detail(
     key = {"officer": "officer_id", "client": "client_id",
            "vendor": "vendor_id", "post_site": "post_site_id"}[entity_type]
     q = {key: entity_id, "date": {"$gte": date_from, "$lte": date_to}}
-    if client_id and entity_type == "officer":
+    if client_id and entity_type != "client":
         q["client_id"] = client_id
     docs = await db.dispatch_schedules.find(q).sort([("date", 1), ("start_time", 1)]).to_list(2000)
 
@@ -3127,13 +3132,13 @@ async def export_report(
             shift_type=shift_type, confirmation_status=confirmation_status,
             shift_status=shift_status, q=q, limit=1000)
     elif type == "by-officer":
-        data = await report_by_officer(request, db, date_from=date_from, date_to=date_to, q=q)
+        data = await report_by_officer(request, db, date_from=date_from, date_to=date_to, q=q, client_id=client_id)
     elif type == "by-post-site":
-        data = await report_by_post_site(request, db, date_from=date_from, date_to=date_to, q=q)
+        data = await report_by_post_site(request, db, date_from=date_from, date_to=date_to, q=q, client_id=client_id)
     elif type == "by-client":
-        data = await report_by_client(request, db, date_from=date_from, date_to=date_to, q=q)
+        data = await report_by_client(request, db, date_from=date_from, date_to=date_to, q=q, client_id=client_id)
     elif type == "by-vendor":
-        data = await report_by_vendor(request, db, date_from=date_from, date_to=date_to, q=q)
+        data = await report_by_vendor(request, db, date_from=date_from, date_to=date_to, q=q, client_id=client_id)
 
     spec = REPORT_TYPES[type]
     cols = list(spec["cols_base"])

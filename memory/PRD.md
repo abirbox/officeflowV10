@@ -42,3 +42,10 @@ full code unchanged. After preview we will make changes. Planned first change: n
 - **Audit visibility**: new `_plog()` in client_portal.py writes every client action (create/update/delete/export on payment_so & wage_report) to `dispatch_audit` with `client_name`. `dispatch.py` AUDIT_ENTITY_TYPES += payment_so, wage_report; AUDIT_ACTIONS += export. Admin `DispatchAuditPage.js` shows "Client: <name>", export badge, new entity labels.
 - Verified: testing agent iteration_14 — backend 9/9 pytest, frontend 100%, no bugs.
 
+## Feature: Client Wage Report now REUSES the admin component (2026-06)
+- Client portal `/client-portal/wage-report` now renders the **exact admin `DispatchReportsPage`** (not a duplicate) — same tabs (Schedules, By Officer, By Post Site, By Client, By Vendor), filters, exports, payslip & advance-salary actions. Deleted the old custom `ClientWageReport.js`.
+- Reuse mechanism: `DispatchReportsPage` switched from raw `api` to `useScopedApi()`; `ClientPortalLayout` wraps it in `<ScopeProvider base="/portal/dispatch">` so every `/dispatch/*` call rewrites to `/portal/dispatch/*`. `window.open` payslip PDF uses new `useScopeBase()`.
+- Backend: added `/portal/dispatch/reports/*`, `/portal/dispatch/advance-salary/*`, `/portal/dispatch/payslip-records/*` wrappers that force the client's scope and log exports/mutations to `dispatch_audit` with `client_name`. `dispatch.py` aggregate/export/entity-detail endpoints made client-scopable (optional `client_id`, backward compatible). `CLIENT_DISPATCH_PERMS` += reports/financial perms. Removed the now-orphaned legacy `/portal/wage-report*` endpoints.
+- Admin `/dashboard/dispatch/reports` unchanged (global, unscoped). Direct `/api/dispatch/*` stays 403 for role=client.
+- Verified: testing agent iteration_15 — backend 11/11 pytest, frontend 100%, no bugs (reuse, scoping, exports+audit, admin regression, security all pass).
+

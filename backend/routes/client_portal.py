@@ -80,6 +80,10 @@ CLIENT_DISPATCH_PERMS = [
     "dispatch.officers.view", "dispatch.officers.create", "dispatch.officers.edit", "dispatch.officers.delete",
     "dispatch.post_sites.view", "dispatch.post_sites.create", "dispatch.post_sites.edit", "dispatch.post_sites.delete",
     "dispatch.confirmation.view", "dispatch.confirmation.manage", "dispatch.confirmation.history",
+    # Wage Report (reused admin DispatchReportsPage) — client-scoped via the
+    # /portal/dispatch/reports wrappers. Direct /api/dispatch/* stays blocked.
+    "dispatch.reports.view", "dispatch.reports.export",
+    "dispatch.financial.view", "dispatch.financial.adjust",
 ]
 
 
@@ -597,223 +601,6 @@ async def _own_officer(db, cid, officer_id):
     return officer
 
 
-# =====================================================================
-#  WAGE REPORT (scoped to this client's officers)
-# =====================================================================
-async def _compute_wage_report(db, cid, date_from, date_to):
-    if not date_from or not date_to:
-        date_from, date_to = _month_bounds()
-
-    completed_cond = {"$in": ["$shift_status", COMPLETED_STATUSES]}
-    pipeline = [
-        {"$match": {"client_id": cid, "date": {"$gte": date_from, "$lte": date_to}}},
-        {"$group": {
-            "_id": "$officer_id",
-            "total_shifts": {"$sum": 1},
-            "completed": {"$sum": {"$cond": [completed_cond, 1, 0]}},
-            "total_hours": {"$sum": {"$cond": [completed_cond, {"$ifNull": ["$duty_hours", 0]}, 0]}},
-            "rate": {"$max": {"$ifNull": ["$duty_rate", 0]}},
-            "wage": {"$sum": {"$cond": [completed_cond,
-                     {"$multiply": [{"$ifNull": ["$duty_hours", 0]}, {"$ifNull": ["$duty_rate", 0]}]}, 0]}},
-        }},
-        {"$sort": {"wage": -1}},
-    ]
-    rows = await db.dispatch_schedules.aggregate(pipeline).to_list(2000)
-    out = []
-    total_hours = 0.0
-    total_wage = 0.0
-    for r in rows:
-        oid = r.pop("_id")
-        if not oid or oid in SPECIAL_OFFICERS:
-            continue
-        officer = await db.dispatch_officers.find_one({"_id": _oid(oid)}, {"name": 1, "officer_code": 1})
-        r["officer_id"] = oid
-        r["officer_name"] = officer.get("name") if officer else "—"
-        r["officer_code"] = officer.get("officer_code") if officer else None
-        r["total_hours"] = round(r.get("total_hours", 0), 2)
-        r["rate"] = round(r.get("rate", 0), 2)
-        r["wage"] = round(r.get("wage", 0), 2)
-        total_hours += r["total_hours"]
-        total_wage += r["wage"]
-        out.append(r)
-    return {
-        "items": out,
-        "date_from": date_from, "date_to": date_to,
-        "totals": {"hours": round(total_hours, 2), "wage": round(total_wage, 2), "officers": len(out)},
-    }
-
-
-@router.get("/wage-report")
-async def portal_wage_report(request: Request, db=Depends(get_db),
-                             date_from: str = None, date_to: str = None):
-    user = await get_client_user(request, db)
-    return await _compute_wage_report(db, user["client_id"], date_from, date_to)
-
-
-class PortalWageRate(BaseModel):
-    rate: float
-    date_from: Optional[str] = None
-    date_to: Optional[str] = None
-
-
-@router.put("/wage-report/officer/{officer_id}/rate")
-async def portal_set_wage_rate(officer_id: str, payload: PortalWageRate,
-                               request: Request, db=Depends(get_db)):
-    """Set the duty (wage) rate for one of this client's officers across the
-    schedules in the selected period. Recalculates the wage report. Logged."""
-    user = await get_client_user(request, db)
-    cid = user["client_id"]
-    officer = await _own_officer(db, cid, officer_id)
-    if payload.rate < 0:
-        raise HTTPException(400, "Rate cannot be negative")
-    date_from = payload.date_from
-    date_to = payload.date_to
-    if not date_from or not date_to:
-        date_from, date_to = _month_bounds()
-    rate = round(float(payload.rate), 2)
-    res = await db.dispatch_schedules.update_many(
-        {"client_id": cid, "officer_id": officer_id, "date": {"$gte": date_from, "$lte": date_to}},
-        {"$set": {"duty_rate": rate, "updated_at": _now(),
-                  "updated_by": str(user["_id"]),
-                  "last_modified_by_name": user.get("name"),
-                  "last_modified_action": "Wage rate edited (Client Portal)",
-                  "last_modified_at": _now()}},
-    )
-    await _plog(db, user, "update", "wage_report",
-                f"{officer.get('name')} — rate set to {rate}",
-                entity_id=officer_id,
-                changes={"duty_rate": {"to": rate}, "period": f"{date_from} to {date_to}",
-                         "shifts_updated": res.modified_count})
-    return {"updated": res.modified_count, "rate": rate,
-            "date_from": date_from, "date_to": date_to}
-
-
-@router.get("/wage-report/report/{fmt}")
-async def portal_wage_report_export(fmt: str, request: Request, db=Depends(get_db),
-                                    date_from: str = None, date_to: str = None):
-    user = await get_client_user(request, db)
-    cid = user["client_id"]
-    data = await _compute_wage_report(db, cid, date_from, date_to)
-    client = await db.dispatch_clients.find_one({"_id": _oid(cid)})
-    cname = (client or {}).get("name", "Client")
-
-    rows = []
-    for r in data["items"]:
-        rows.append({
-            "officer_name": r.get("officer_name"),
-            "officer_code": r.get("officer_code") or "—",
-            "total_shifts": r.get("total_shifts", 0),
-            "completed": r.get("completed", 0),
-            "total_hours": r.get("total_hours", 0),
-            "rate": r.get("rate", 0),
-            "wage": r.get("wage", 0),
-        })
-    t = data["totals"]
-    rows.append({"officer_name": "TOTAL", "officer_code": "", "total_shifts": "",
-                 "completed": "", "total_hours": t.get("hours", 0), "rate": "",
-                 "wage": t.get("wage", 0)})
-
-    columns = [
-        {"key": "officer_name", "label": "Officer"},
-        {"key": "officer_code", "label": "Code"},
-        {"key": "total_shifts", "label": "Shifts"},
-        {"key": "completed", "label": "Completed"},
-        {"key": "total_hours", "label": "Hours"},
-        {"key": "rate", "label": "Rate"},
-        {"key": "wage", "label": "Wage"},
-    ]
-    title = f"Wage Report — {cname}"
-    subtitle = f"{data['date_from']} to {data['date_to']}"
-
-    await _plog(db, user, "export", "wage_report",
-                f"Wage Report ({data['date_from']} to {data['date_to']}) — {fmt.upper()}",
-                changes={"format": fmt, "officers": t.get("officers", 0)})
-
-    safe = cname.replace(" ", "-")
-    if (fmt or "pdf").lower() == "xlsx":
-        from utils.dispatch_reports import build_xlsx
-        raw = build_xlsx(rows, columns, title=title)
-        return StreamingResponse(io.BytesIO(raw),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="Wage-Report-{safe}.xlsx"'})
-    from utils.dispatch_reports import build_pdf
-    raw = build_pdf(title, subtitle, rows, columns)
-    return StreamingResponse(io.BytesIO(raw), media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="Wage-Report-{safe}.pdf"'})
-
-
-@router.get("/officers/{officer_id}/payslip")
-async def portal_officer_payslip(officer_id: str, request: Request, db=Depends(get_db),
-                                 date_from: str = None, date_to: str = None,
-                                 format: str = "pdf"):
-    user = await get_client_user(request, db)
-    cid = user["client_id"]
-    officer = await _own_officer(db, cid, officer_id)
-    if not date_from or not date_to:
-        date_from, date_to = _month_bounds()
-
-    client = await db.dispatch_clients.find_one({"_id": _oid(cid)})
-    scheds = await db.dispatch_schedules.find(
-        {"client_id": cid, "officer_id": officer_id, "date": {"$gte": date_from, "$lte": date_to}}
-    ).sort([("date", 1), ("start_time", 1)]).to_list(3000)
-
-    # Resolve post site names
-    post_ids = {s.get("post_site_id") for s in scheds if s.get("post_site_id")}
-    posts_map = {}
-    if post_ids:
-        obj_ids = [ObjectId(i) for i in post_ids if ObjectId.is_valid(i)]
-        pdocs = await db.dispatch_post_sites.find({"_id": {"$in": obj_ids}}, {"name": 1, "post_pin": 1}).to_list(len(obj_ids))
-        posts_map = {str(p["_id"]): p for p in pdocs}
-
-    rows = []
-    total_hours = 0.0
-    total_amount = 0.0
-    for s in scheds:
-        is_complete = s.get("shift_status") in COMPLETED_STATUSES
-        hours = _amt(s.get("duty_hours")) if is_complete else 0.0
-        rate = _amt(s.get("duty_rate"))
-        amount = round(hours * rate, 2)
-        total_hours += hours
-        total_amount += amount
-        p = posts_map.get(str(s.get("post_site_id")), {})
-        rows.append({
-            "date": s.get("date"),
-            "post_site": f"{p.get('post_pin', '')} {p.get('name', '')}".strip() or "—",
-            "shift_type": s.get("shift_type"),
-            "hours": hours,
-            "rate": rate,
-            "amount": amount,
-        })
-    rows.append({"date": "", "post_site": "", "shift_type": "TOTAL",
-                 "hours": round(total_hours, 2), "rate": "", "amount": round(total_amount, 2)})
-
-    columns = [
-        {"key": "date", "label": "Date"},
-        {"key": "post_site", "label": "Post Site"},
-        {"key": "shift_type", "label": "Shift"},
-        {"key": "hours", "label": "Hours"},
-        {"key": "rate", "label": "Rate"},
-        {"key": "amount", "label": "Amount"},
-    ]
-    title = f"Payslip — {officer.get('name')} ({officer.get('officer_code') or ''})"
-    subtitle = f"{(client or {}).get('name', 'Client')}  |  {date_from} to {date_to}"
-
-    fmt = (format or "pdf").lower()
-    safe = (officer.get("name") or "officer").replace(" ", "-")
-    await _plog(db, user, "export", "wage_report",
-                f"Payslip — {officer.get('name')} ({date_from} to {date_to}) — {fmt.upper()}",
-                entity_id=officer_id, changes={"format": fmt})
-    if fmt == "xlsx":
-        from utils.dispatch_reports import build_xlsx
-        data = build_xlsx(rows, columns, title=title)
-        return StreamingResponse(io.BytesIO(data),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="Payslip-{safe}.xlsx"'})
-    from utils.dispatch_reports import build_pdf
-    data = build_pdf(title, subtitle, rows, columns)
-    return StreamingResponse(io.BytesIO(data), media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="Payslip-{safe}.pdf"'})
-
 
 # =====================================================================
 #  PAYMENT (SO) — full CRUD for this client's officers (scoped) + export.
@@ -1234,3 +1021,224 @@ async def pd_actions(sid: str, request: Request, db=Depends(get_db)):
 async def pd_upload_logo(file: UploadFile, request: Request, db=Depends(get_db)):
     await get_client_user(request, db)
     return await adm.upload_dispatch_logo(file, request)
+
+
+
+# =====================================================================
+#  WAGE REPORT MIRROR  (client-scoped wrappers around the admin
+#  DispatchReportsPage endpoints). The reused component calls /dispatch/*
+#  which the ScopeProvider rewrites to /portal/dispatch/*. Every wrapper
+#  forces the logged-in client's scope and, where the action is a mutation
+#  or an export, records it to the shared Dispatch audit trail.
+# =====================================================================
+from models.dispatch import PayslipRecordCreate as _PayslipRecordCreate
+
+
+# ---------- report tables ----------
+@router.get("/dispatch/reports/schedules")
+async def pd_report_schedules(request: Request, db=Depends(get_db),
+                              officer_id: str = None, vendor_id: str = None,
+                              post_site_id: str = None, post_pin: str = None,
+                              date_from: str = None, date_to: str = None,
+                              shift_type: str = None, confirmation_status: str = None,
+                              shift_status: str = None, q: str = None, limit: int = 50):
+    user = await get_client_user(request, db)
+    return await adm.report_schedules(
+        request, db, officer_id=officer_id, vendor_id=vendor_id,
+        client_id=user["client_id"], post_site_id=post_site_id, post_pin=post_pin,
+        date_from=date_from, date_to=date_to, shift_type=shift_type,
+        confirmation_status=confirmation_status, shift_status=shift_status,
+        q=q, limit=limit)
+
+
+@router.get("/dispatch/reports/by-officer")
+async def pd_report_by_officer(request: Request, db=Depends(get_db),
+                               date_from: str = None, date_to: str = None, q: str = None):
+    user = await get_client_user(request, db)
+    return await adm.report_by_officer(request, db, date_from=date_from, date_to=date_to,
+                                       q=q, client_id=user["client_id"])
+
+
+@router.get("/dispatch/reports/by-post-site")
+async def pd_report_by_post_site(request: Request, db=Depends(get_db),
+                                 date_from: str = None, date_to: str = None, q: str = None):
+    user = await get_client_user(request, db)
+    return await adm.report_by_post_site(request, db, date_from=date_from, date_to=date_to,
+                                         q=q, client_id=user["client_id"])
+
+
+@router.get("/dispatch/reports/by-client")
+async def pd_report_by_client(request: Request, db=Depends(get_db),
+                              date_from: str = None, date_to: str = None, q: str = None):
+    user = await get_client_user(request, db)
+    return await adm.report_by_client(request, db, date_from=date_from, date_to=date_to,
+                                      q=q, client_id=user["client_id"])
+
+
+@router.get("/dispatch/reports/by-vendor")
+async def pd_report_by_vendor(request: Request, db=Depends(get_db),
+                              date_from: str = None, date_to: str = None, q: str = None):
+    user = await get_client_user(request, db)
+    return await adm.report_by_vendor(request, db, date_from=date_from, date_to=date_to,
+                                      q=q, client_id=user["client_id"])
+
+
+@router.get("/dispatch/reports/entity-detail")
+async def pd_report_entity_detail(request: Request, db=Depends(get_db),
+                                  entity_type: str = None, entity_id: str = None,
+                                  date_from: str = None, date_to: str = None):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    if entity_type == "client":
+        entity_id = cid  # a client can only ever see their own client detail
+    return await adm.report_entity_detail(request, db, entity_type=entity_type,
+                                          entity_id=entity_id, date_from=date_from,
+                                          date_to=date_to, client_id=cid)
+
+
+@router.get("/dispatch/reports/export")
+async def pd_export_report(request: Request, db=Depends(get_db),
+                           type: str = "schedules", format: str = "csv",
+                           date_from: str = None, date_to: str = None,
+                           officer_id: str = None, vendor_id: str = None,
+                           post_site_id: str = None, post_pin: str = None,
+                           shift_type: str = None, confirmation_status: str = None,
+                           shift_status: str = None, q: str = None):
+    user = await get_client_user(request, db)
+    res = await adm.export_report(
+        request, db, type=type, format=format, date_from=date_from, date_to=date_to,
+        officer_id=officer_id, vendor_id=vendor_id, client_id=user["client_id"],
+        post_site_id=post_site_id, post_pin=post_pin, shift_type=shift_type,
+        confirmation_status=confirmation_status, shift_status=shift_status, q=q)
+    await _plog(db, user, "export", "wage_report",
+                f"Wage Report ({type}) — {format.upper()}",
+                changes={"type": type, "format": format,
+                         "period": f"{date_from} to {date_to}"})
+    return res
+
+
+@router.get("/dispatch/reports/export/entity-detail")
+async def pd_export_entity_detail(request: Request, db=Depends(get_db),
+                                  entity_type: str = None, entity_id: str = None,
+                                  date_from: str = None, date_to: str = None,
+                                  format: str = "csv", columns: str = None,
+                                  template: str = None):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    if entity_type == "client":
+        entity_id = cid
+    res = await adm.export_entity_detail(request, db, entity_type=entity_type,
+                                         entity_id=entity_id, date_from=date_from,
+                                         date_to=date_to, client_id=cid, format=format,
+                                         columns=columns, template=template)
+    await _plog(db, user, "export", "wage_report",
+                f"Wage Report detail ({entity_type}) — {format.upper()}",
+                entity_id=entity_id, changes={"format": format})
+    return res
+
+
+# ---------- advance salary ----------
+@router.get("/dispatch/advance-salary")
+async def pd_get_advance_salary(request: Request, db=Depends(get_db),
+                                officer_id: str = None, date_from: str = None, date_to: str = None):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    if officer_id:
+        await _own_officer(db, cid, officer_id)
+    return await adm.get_advance_salary(request, db, officer_id=officer_id,
+                                        client_id=cid, date_from=date_from, date_to=date_to)
+
+
+@router.post("/dispatch/advance-salary")
+async def pd_create_advance_salary(request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    payload = await request.json()
+    await _own_officer(db, cid, str(payload.get("officer_id") or ""))
+    if str(payload.get("client_id") or "") != str(cid):
+        raise HTTPException(403, "Advance salary must be for your own account")
+    res = await adm.create_advance_salary_entry(request, db)
+    await _plog(db, user, "create", "wage_report",
+                f"Advance salary ({payload.get('type')}) {payload.get('amount')}",
+                changes={"officer_id": payload.get("officer_id"),
+                         "amount": payload.get("amount"), "type": payload.get("type")})
+    return res
+
+
+@router.delete("/dispatch/advance-salary/{entry_id}")
+async def pd_delete_advance_salary(entry_id: str, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    entry = await db.dispatch_advance_salary.find_one({"_id": _oid(entry_id)})
+    if not entry or str(entry.get("client_id") or "") != str(cid):
+        raise HTTPException(404, "Advance entry not found")
+    res = await adm.delete_advance_salary_entry(entry_id, request, db)
+    await _plog(db, user, "delete", "wage_report", "Advance salary entry", entity_id=entry_id)
+    return res
+
+
+@router.get("/dispatch/advance-salary/statement")
+async def pd_advance_salary_statement(request: Request, db=Depends(get_db), officer_id: str = None):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    if officer_id:
+        await _own_officer(db, cid, officer_id)
+    res = await adm.advance_salary_statement(request, db, officer_id=officer_id, client_id=cid)
+    await _plog(db, user, "export", "wage_report", "Advance salary statement",
+                entity_id=officer_id, changes={"format": "pdf"})
+    return res
+
+
+# ---------- payslip records ----------
+async def _own_payslip_record(db, cid, rid):
+    doc = await db.dispatch_payslip_records.find_one({"_id": _oid(rid)})
+    if not doc or str(doc.get("client_id") or "") != str(cid):
+        raise HTTPException(404, "Payslip record not found")
+    return doc
+
+
+@router.post("/dispatch/payslip-records")
+async def pd_create_payslip_record(payload: _PayslipRecordCreate, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    await _own_officer(db, cid, payload.officer_id)
+    if str(payload.client_id or "") != str(cid):
+        raise HTTPException(403, "Payslip must be for your own account")
+    res = await adm.create_payslip_record(payload, request, db)
+    await _plog(db, user, "export", "wage_report",
+                f"Payslip generated ({payload.date_from} to {payload.date_to})",
+                entity_id=payload.officer_id, changes={"format": "pdf"})
+    return res
+
+
+@router.get("/dispatch/payslip-records")
+async def pd_list_payslip_records(request: Request, db=Depends(get_db), officer_id: str = None):
+    user = await get_client_user(request, db)
+    return await adm.list_payslip_records(request, db, officer_id=officer_id,
+                                          client_id=user["client_id"])
+
+
+@router.get("/dispatch/payslip-records/{rid}")
+async def pd_get_payslip_record(rid: str, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    await _own_payslip_record(db, user["client_id"], rid)
+    return await adm.get_payslip_record(rid, request, db)
+
+
+@router.get("/dispatch/payslip-records/{rid}/pdf")
+async def pd_download_payslip_record_pdf(rid: str, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    await _own_payslip_record(db, user["client_id"], rid)
+    res = await adm.download_payslip_record_pdf(rid, request, db)
+    await _plog(db, user, "export", "wage_report", "Payslip PDF download",
+                entity_id=rid, changes={"format": "pdf"})
+    return res
+
+
+@router.delete("/dispatch/payslip-records/{rid}")
+async def pd_delete_payslip_record(rid: str, request: Request, db=Depends(get_db)):
+    user = await get_client_user(request, db)
+    await _own_payslip_record(db, user["client_id"], rid)
+    res = await adm.delete_payslip_record(rid, request, db)
+    await _plog(db, user, "delete", "wage_report", "Payslip record", entity_id=rid)
+    return res

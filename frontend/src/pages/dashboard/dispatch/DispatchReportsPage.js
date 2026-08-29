@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api, formatApiErrorDetail } from '@/lib/axios';
+import { formatApiErrorDetail } from '@/lib/axios';
+import { useScopedApi, useScopeBase } from '@/lib/scopedApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -93,6 +94,8 @@ const SEARCH_PLACEHOLDER = {
 };
 
 const DispatchReportsPage = () => {
+  const api = useScopedApi();
+  const scopeBase = useScopeBase();
   const { user } = useAuthStore();
   const canView = hasPermission(user, 'dispatch.reports.view');
   const canExport = hasPermission(user, 'dispatch.reports.export');
@@ -430,7 +433,7 @@ const DispatchReportsPage = () => {
       toast.success('Payslip generated & saved');
       await loadSavedRecords();
       if (data?.id) {
-        window.open(`/api/dispatch/payslip-records/${data.id}/pdf`, '_blank');
+        window.open(`/api${scopeBase}/payslip-records/${data.id}/pdf`, '_blank');
       }
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail) || 'Failed to generate payslip');
@@ -1023,7 +1026,7 @@ const downloadEntityDetail = async (fmt, opts = {}) => {
                               <span className="text-[#64748B]">Net {formatCurrency(rec.net_payment)}{rec.generated_at ? ` · ${formatDateTime(rec.generated_at)}` : ''}</span>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              <Button size="sm" variant="outline" onClick={() => window.open(`/api/dispatch/payslip-records/${rec.id}/pdf`, '_blank')} data-testid={`preview-payslip-${rec.id}`}>
+                              <Button size="sm" variant="outline" onClick={() => window.open(`/api${scopeBase}/payslip-records/${rec.id}/pdf`, '_blank')} data-testid={`preview-payslip-${rec.id}`}>
                                 <FileText className="w-3.5 h-3.5 mr-1" /> Preview / Download
                               </Button>
                               {canAdjust && (

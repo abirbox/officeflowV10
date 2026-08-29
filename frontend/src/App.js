@@ -42,7 +42,6 @@ import ClientDashboard from "@/pages/client/ClientDashboard";
 import ClientVendors from "@/pages/client/ClientVendors";
 import ClientReports from "@/pages/client/ClientReports";
 import ClientPaymentSO from "@/pages/client/ClientPaymentSO";
-import ClientWageReport from "@/pages/client/ClientWageReport";
 import "@/App.css";
 
 function App() {
@@ -133,7 +132,7 @@ function App() {
             <Route path="post-sites" element={<PostSitesPage />} />
             <Route path="vendors" element={<ClientVendors />} />
             <Route path="payments" element={<ClientPaymentSO />} />
-            <Route path="wage-report" element={<ClientWageReport />} />
+            <Route path="wage-report" element={<DispatchReportsPage />} />
             <Route path="reports" element={<ClientReports />} />
           </Route>
 

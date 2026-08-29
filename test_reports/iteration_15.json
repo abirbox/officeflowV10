@@ -1,0 +1,30 @@
+{
+  "summary": "Verified end-to-end that the client-portal Wage Report route (/client-portal/wage-report) reuses the EXACT admin DispatchReportsPage component, scoped to the logged-in client. Backend pytest 11/11 pass (test_iter15_client_reports_reuse.py). Frontend Playwright: client Wage Report renders h1 'Wage Report', all 5 tabs (Schedules/By Officer/By Post Site/By Client/By Vendor), date filters, search, Export Excel/PDF buttons — all identical to admin. By-Client tab shows only 'Arseas Security Services INC' (1 row), By-Officer contains 'Abir Vai', and 'New Client' text never appears. Aug-2026 range yields 3 shifts / 24 paid hrs / $840 payout for Arseas. PDF export downloads (dispatch-by-client-2026-08-01-2026-08-31.pdf) and is logged in the admin Dispatch Audit Log as entity 'Wage Report' with action 'export' and 'Client: Arseas Security Services INC'. Admin regression: /dashboard/dispatch/reports still returns all 3 clients (not scoped). Security: direct /api/dispatch/reports/{by-client,by-officer,by-post-site,by-vendor,schedules} all return 403 'Clients must use the client portal' for role=client.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter15_client_reports_reuse.py",
+    "/app/test_reports/pytest/iter15.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Legacy /portal/wage-report* endpoints in client_portal.py are still mounted but unused after the reuse refactor — consider removing them (or keep and add a deprecation note) to reduce surface area and audit noise.",
+    "client_portal.py _plog silently swallows exceptions (carried over from iter14). A broken audit insert would go unnoticed — log/telemetry recommended.",
+    "pd_export_report / pd_export_entity_detail always log even when the underlying export call raises. Because _plog runs after adm.export_*, an exception aborts the log — that's fine, but consider logging failed export attempts too for security auditing."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter15_client_reports_reuse.py",
+    "/app/test_reports/iteration_15.json"
+  ],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "admin@example.com/admin123 ; info@arseas.com/Client@123",
+  "seed_data_creation": "Only exports were triggered (adds 1 wage_report/export row in dispatch_audit per run). No mutations to schedules or officers.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reuse-verification path: ClientPortalLayout wraps <Outlet/> in <ScopeProvider base='/portal/dispatch'>. DispatchReportsPage uses useScopedApi() so /dispatch/reports/* auto-rewrites to /portal/dispatch/reports/* in the portal. All backend wrappers in /app/backend/routes/client_portal.py (lines 1255-1461) call adm.report_* with client_id forced. Admin dispatch router (routes/dispatch.py:50) has _block_client_role dependency ensuring 403 for role=client. Data-testids in DispatchReportsPage: dispatch-reports-page, tab-{schedules|by-officer|by-post-site|by-client|by-vendor}, rf-from/rf-to/rf-search, export-pdf/export-excel, report-row-{i}. Aug-2026 range gives 3 shifts for Abir Vai at rate 35 (payout $840).",
+  "rca of the issue": "No bugs found in this iteration."
+}

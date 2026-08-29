@@ -1284,14 +1284,18 @@ async def pd_invoice_create(payload: _DispatchInvoiceCreate, request: Request, d
     cid = user["client_id"]
     payload.client_id = cid
     out = await inv.create_invoice(payload, request, db)
-    cname = await _client_display_name(db, cid)
+    client_doc = await db.dispatch_clients.find_one({"_id": _oid(cid)}, {"name": 1, "code": 1})
+    cname = (client_doc or {}).get("name")
+    ccode = (client_doc or {}).get("code")
     await db.dispatch_invoices.update_one({"_id": _oid(out["id"])}, {"$set": {
         "generated_by_role": "client",
         "generated_by_client_id": str(cid),
         "generated_by_client_name": cname,
+        "generated_by_client_code": ccode,
     }})
     out["generated_by_role"] = "client"
     out["generated_by_client_name"] = cname
+    out["generated_by_client_code"] = ccode
     await _plog(db, user, "create", "invoice",
                 f"Invoice #{out.get('invoice_number')}", entity_id=out.get("id"),
                 changes={"total": out.get("total_amount")})

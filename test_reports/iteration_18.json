@@ -1,0 +1,24 @@
+{
+  "summary": "Iter18 — Client Profile settings (self-service). Backend: 6/6 pytest cases pass (prefill via /portal/me, PUT /portal/profile persists phone/email/address, blank-name blocked (name preserved), endpoint requires auth with no id param, logo upload persists, admin sees updated client + audit row with actor_role=client). Frontend Playwright: nav 'Company Profile' opens /client-portal/profile; prefill loads current values; edit + save shows 'Profile updated' toast and persists across reload; logo upload preview appears and persists after reload; clearing name shows 'Company name is required' toast; admin dispatch/clients + dispatch/audit both reflect the client-triggered update.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter18_client_profile.py",
+    "/app/test_reports/pytest/iter18.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: server accepts a whitespace-only name for the 'name' key but silently drops it (returns 400 only if it was the only key). UI-side blocks blank name via toast, which is fine.",
+    "Minor: /portal/me returns logo_url only when logo_path is set; if you rely on logo_url downstream after clearing, ensure it is nulled explicitly."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter18_client_profile.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "info@arseas.com / Client@123 ; admin@example.com / admin123",
+  "seed_data_creation": "None (edits Arseas client in place; test data prefixed UI_TEST/TEST_ADDR).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Client profile page lives at /client-portal/profile. Data-testids in place: client-profile-page, profile-name, profile-phone, profile-email, profile-address, profile-logo-upload, profile-logo-input, profile-logo-img, profile-save. Backend audit rows use key 'entity_type' (not 'entity'); include this alias when asserting audit content.",
+  "rca of the issue": "N/A — feature works end-to-end."
+}

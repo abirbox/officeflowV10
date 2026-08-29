@@ -62,3 +62,9 @@ full code unchanged. After preview we will make changes. Planned first change: n
 - Removed the **Reports** item from the client portal navbar (added **Invoices**).
 - Verified: testing agent iteration_17 — backend 12/12 pytest, frontend 100%, no bugs (reuse, create/download, scoping, admin badge, admin regression, audit, security).
 
+## Feature: Client self-service Company Profile (2026-06)
+- New client portal page `/client-portal/profile` (`ClientProfile.js`, nav item "Company Profile") lets a client edit their OWN name, logo, address, phone and email.
+- Backend `PUT /portal/profile` (portal_update_profile) updates only the logged-in client's `dispatch_clients` record (no id param → session-scoped), guards against blanking the name, and logs an "update"/client audit row with client_name + actor_role=client. Logo uses the existing `/portal/dispatch/upload-logo`; `GET /portal/me` prefills and returns `logo_url`.
+- Admin sees the updated client record (Dispatch → Clients) and the audit entry.
+- Verified: testing agent iteration_18 — backend 6/6 pytest, frontend 100%, no bugs.
+

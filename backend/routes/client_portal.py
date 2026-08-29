@@ -122,6 +122,40 @@ async def portal_me(request: Request, db=Depends(get_db)):
     }
 
 
+class PortalProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    logo_path: Optional[str] = None
+    address: Optional[str] = None
+    contact_number: Optional[str] = None
+    email: Optional[str] = None
+
+
+@router.put("/profile")
+async def portal_update_profile(payload: PortalProfileUpdate, request: Request, db=Depends(get_db)):
+    """Let a client edit their OWN company profile (name, logo, address, phone,
+    email). Scoped to their linked client record; logged for admin visibility."""
+    user = await get_client_user(request, db)
+    cid = user["client_id"]
+    upd = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if "name" in upd and not str(upd["name"]).strip():
+        upd.pop("name")  # never let a client blank out their own name
+    if not upd:
+        raise HTTPException(400, "Nothing to update")
+    upd["updated_at"] = _now()
+    upd["updated_by"] = str(user["_id"])
+    r = await db.dispatch_clients.update_one({"_id": _oid(cid)}, {"$set": upd})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Client profile not found")
+    saved = await db.dispatch_clients.find_one({"_id": _oid(cid)})
+    out = _doc_out(saved)
+    if out.get("logo_path"):
+        out["logo_url"] = to_public_url(out["logo_path"])
+    await _plog(db, user, "update", "client", saved.get("name"), entity_id=str(cid),
+                changes={k: v for k, v in upd.items() if k not in ("updated_at", "updated_by")})
+    return {"client": out, "user": {"name": user.get("name"), "email": user.get("email")}}
+
+
+
 @router.get("/summary")
 async def portal_summary(request: Request, db=Depends(get_db)):
     user = await get_client_user(request, db)

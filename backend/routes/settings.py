@@ -56,6 +56,22 @@ async def get_public_settings(request: Request, db=Depends(get_db)):
         "currency_symbol": doc.get("currency_symbol", "৳"),
         "not_found_lottie_enabled": doc.get("not_found_lottie_enabled", True),
         "not_found_lottie_url": doc.get("not_found_lottie_url"),
+        # Client portal login
+        "client_login_badge": doc.get("client_login_badge", "Client Portal"),
+        "client_login_title": doc.get("client_login_title", "Client Sign In"),
+        "client_login_subtitle": doc.get("client_login_subtitle", "Sign in to view your schedules, invoices and reports"),
+        "client_login_hero_title": doc.get("client_login_hero_title", "Client Portal"),
+        "client_login_hero_subtitle": doc.get("client_login_hero_subtitle", "Live dispatch schedules, invoices, wage reports and post-site coverage — everything you need to keep your operation on track."),
+        "client_login_email_label": doc.get("client_login_email_label", "Client Email"),
+        "client_login_password_label": doc.get("client_login_password_label", "Password"),
+        "client_login_button_text": doc.get("client_login_button_text", "Sign In to Client Portal"),
+        "client_login_employee_text": doc.get("client_login_employee_text", "Employees and admins:"),
+        "client_login_employee_link_text": doc.get("client_login_employee_link_text", "use the main sign-in"),
+        "client_login_contact_text": doc.get("client_login_contact_text", "Don't have client access? Contact your administrator."),
+        "client_login_primary_color": doc.get("client_login_primary_color", "#0EA5E9"),
+        "client_login_primary_hover_color": doc.get("client_login_primary_hover_color", "#0284C7"),
+        "client_login_hero_start_color": doc.get("client_login_hero_start_color", "#0EA5E9"),
+        "client_login_hero_end_color": doc.get("client_login_hero_end_color", "#0369A1"),
     }
 
 
@@ -184,8 +200,8 @@ async def list_timezones():
 # render with the brand button colour even before sign-in.
 DEFAULT_THEME = {
     # Brand
-    "brand_primary":         "#4F46E5",
-    "brand_primary_hover":   "#4338CA",
+    "brand_primary":         "#0EA5E9",
+    "brand_primary_hover":   "#0284C7",
     "brand_primary_fg":      "#FFFFFF",
     # Table & tools
     "table_header_bg":       "#FBC9FF",
@@ -227,29 +243,75 @@ async def get_theme(request: Request, db=Depends(get_db)):
 async def update_theme(payload: dict, request: Request, db=Depends(get_db)):
     user = await require_admin(request, db)
     incoming = payload.get("values") if isinstance(payload, dict) else None
+
     if not isinstance(incoming, dict) or not incoming:
-        raise HTTPException(status_code=400, detail="Body must be { values: { token: '#rrggbb', ... } }")
-    accepted = {k: v.strip() for k, v in incoming.items()
-                if k in DEFAULT_THEME and isinstance(v, str) and v.strip()}
+        raise HTTPException(
+            status_code=400,
+            detail="Body must be { values: { token: '#rrggbb', ... } }"
+        )
+
+    accepted = {
+        k: v.strip()
+        for k, v in incoming.items()
+        if k in DEFAULT_THEME and isinstance(v, str) and v.strip()
+    }
+
     import re
     hex_re = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
     bad = [k for k, v in accepted.items() if not hex_re.match(v)]
     if bad:
-        raise HTTPException(status_code=400, detail=f"Invalid colour value(s) for: {', '.join(bad)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid colour value(s) for: {', '.join(bad)}"
+        )
+
     if not accepted:
-        raise HTTPException(status_code=400, detail="No valid colour tokens supplied")
+        raise HTTPException(
+            status_code=400,
+            detail="No valid colour tokens supplied"
+        )
+
+    # IMPORTANT:
+    # Merge the changed tokens with the existing saved theme instead of
+    # replacing the entire values object. This allows the admin panel to
+    # update one or more colours without resetting previously customized
+    # colours back to their defaults.
+    existing_doc = await db.app_settings.find_one(
+        {"key": "site_theme"},
+        {"_id": 0, "values": 1},
+    )
+
+    existing_values = (existing_doc or {}).get("values", {}) or {}
+    merged_values = {
+        **{
+            k: v
+            for k, v in existing_values.items()
+            if k in DEFAULT_THEME and isinstance(v, str) and v
+        },
+        **accepted,
+    }
+
     await db.app_settings.update_one(
         {"key": "site_theme"},
         {"$set": {
             "key": "site_theme",
-            "values": accepted,
+            "values": merged_values,
             "updated_at": datetime.now(timezone.utc),
             "updated_by_id": str(user["_id"]),
             "updated_by_name": user.get("name"),
         }},
         upsert=True,
     )
-    return {"values": {**DEFAULT_THEME, **accepted}, "defaults": DEFAULT_THEME}
+
+    # Return the COMPLETE current theme so the frontend state and CSS
+    # variables stay synchronized immediately after saving.
+    values = {**DEFAULT_THEME, **merged_values}
+
+    return {
+        "values": values,
+        "defaults": DEFAULT_THEME,
+    }
 
 
 @router.post("/theme/reset")

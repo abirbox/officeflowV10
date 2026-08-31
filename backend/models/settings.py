@@ -21,6 +21,22 @@ class AppSettings(BaseModel):
     tz_offset_hours: float = 6.0
     not_found_lottie_enabled: bool = True
     not_found_lottie_url: Optional[str] = None
+    # Client portal login page
+    client_login_badge: str = "Client Portal"
+    client_login_title: str = "Client Sign In"
+    client_login_subtitle: str = "Sign in to view your schedules, invoices and reports"
+    client_login_hero_title: str = "Client Portal"
+    client_login_hero_subtitle: str = "Live dispatch schedules, invoices, wage reports and post-site coverage — everything you need to keep your operation on track."
+    client_login_email_label: str = "Client Email"
+    client_login_password_label: str = "Password"
+    client_login_button_text: str = "Sign In to Client Portal"
+    client_login_employee_text: str = "Employees and admins:"
+    client_login_employee_link_text: str = "use the main sign-in"
+    client_login_contact_text: str = "Don't have client access? Contact your administrator."
+    client_login_primary_color: str = "#0EA5E9"
+    client_login_primary_hover_color: str = "#0284C7"
+    client_login_hero_start_color: str = "#0EA5E9"
+    client_login_hero_end_color: str = "#0369A1"
 
 
 class AppSettingsUpdate(BaseModel):
@@ -42,6 +58,22 @@ class AppSettingsUpdate(BaseModel):
     tz_offset_hours: Optional[float] = None
     not_found_lottie_enabled: Optional[bool] = None
     not_found_lottie_url: Optional[str] = None
+    # Client portal login page
+    client_login_badge: Optional[str] = None
+    client_login_title: Optional[str] = None
+    client_login_subtitle: Optional[str] = None
+    client_login_hero_title: Optional[str] = None
+    client_login_hero_subtitle: Optional[str] = None
+    client_login_email_label: Optional[str] = None
+    client_login_password_label: Optional[str] = None
+    client_login_button_text: Optional[str] = None
+    client_login_employee_text: Optional[str] = None
+    client_login_employee_link_text: Optional[str] = None
+    client_login_contact_text: Optional[str] = None
+    client_login_primary_color: Optional[str] = None
+    client_login_primary_hover_color: Optional[str] = None
+    client_login_hero_start_color: Optional[str] = None
+    client_login_hero_end_color: Optional[str] = None
 
 
 class EmailSettingsUpdate(BaseModel):

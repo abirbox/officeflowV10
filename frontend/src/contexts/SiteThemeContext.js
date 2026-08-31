@@ -4,7 +4,7 @@ import { api } from '@/lib/axios';
 /**
  * SiteThemeContext — fetches the admin-editable colour palette from
  * `/api/settings/theme` and pushes each token to `document.documentElement`
- * as a CSS variable (e.g. `--brand-primary: #4F46E5`). Any component that
+ * as a CSS variable (e.g. `--brand-primary: #0EA5E9`). Any component that
  * uses `bg-[var(--brand-primary)]` or inline `style={{ backgroundColor: 'var(--brand-primary)' }}`
  * automatically re-renders when an admin saves a new colour.
  *

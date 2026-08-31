@@ -157,7 +157,7 @@ const AddEmployeeDialog = ({ open, onOpenChange, onCreated }) => {
             </div>
             <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-[#F8FAFC] dark:bg-[#27272A]">
               <span className="text-sm text-[#64748B]">Gross Monthly Salary</span>
-              <span className="text-lg font-bold text-[#4F46E5]" data-testid="new-emp-gross">{grossSalary.toLocaleString()}</span>
+              <span className="text-lg font-bold text-[#0EA5E9]" data-testid="new-emp-gross">{grossSalary.toLocaleString()}</span>
             </div>
           </div>
           <p className="text-xs text-[#64748B]">
@@ -173,7 +173,7 @@ const AddEmployeeDialog = ({ open, onOpenChange, onCreated }) => {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} disabled={busy} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="submit-new-emp">
+          <Button onClick={submit} disabled={busy} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="submit-new-emp">
             {busy ? 'Creating…' : 'Create Employee'}
           </Button>
         </DialogFooter>

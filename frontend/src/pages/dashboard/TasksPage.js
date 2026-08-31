@@ -107,7 +107,7 @@ const TasksPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -126,7 +126,7 @@ const TasksPage = () => {
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="create-task-button" className="bg-[#4F46E5] hover:bg-[#4338CA]">
+              <Button data-testid="create-task-button" className="bg-[#0EA5E9] hover:bg-[#0284C7]">
                 <Plus className="w-5 h-5 mr-2" />
                 Assign Task
               </Button>
@@ -180,11 +180,11 @@ const TasksPage = () => {
                       data-testid="work-type-office"
                       className={`p-4 rounded-lg border-2 transition-all ${
                         newTask.work_type === 'in_office'
-                          ? 'border-[#4F46E5] bg-[#4F46E5]/5'
+                          ? 'border-[#0EA5E9] bg-[#0EA5E9]/5'
                           : 'border-[#E2E8F0] dark:border-[#27272A]'
                       }`}
                     >
-                      <Building className={`w-6 h-6 mx-auto mb-2 ${newTask.work_type === 'in_office' ? 'text-[#4F46E5]' : 'text-[#64748B]'}`} />
+                      <Building className={`w-6 h-6 mx-auto mb-2 ${newTask.work_type === 'in_office' ? 'text-[#0EA5E9]' : 'text-[#64748B]'}`} />
                       <p className="text-sm font-medium text-[#0F172A] dark:text-[#FAFAFA]">In Office</p>
                     </button>
                     <button
@@ -193,11 +193,11 @@ const TasksPage = () => {
                       data-testid="work-type-wfh"
                       className={`p-4 rounded-lg border-2 transition-all ${
                         newTask.work_type === 'work_from_home'
-                          ? 'border-[#4F46E5] bg-[#4F46E5]/5'
+                          ? 'border-[#0EA5E9] bg-[#0EA5E9]/5'
                           : 'border-[#E2E8F0] dark:border-[#27272A]'
                       }`}
                     >
-                      <Home className={`w-6 h-6 mx-auto mb-2 ${newTask.work_type === 'work_from_home' ? 'text-[#4F46E5]' : 'text-[#64748B]'}`} />
+                      <Home className={`w-6 h-6 mx-auto mb-2 ${newTask.work_type === 'work_from_home' ? 'text-[#0EA5E9]' : 'text-[#64748B]'}`} />
                       <p className="text-sm font-medium text-[#0F172A] dark:text-[#FAFAFA]">Work from Home</p>
                     </button>
                   </div>
@@ -229,7 +229,7 @@ const TasksPage = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreateTask} data-testid="submit-task-button" className="bg-[#4F46E5] hover:bg-[#4338CA]">
+                <Button onClick={handleCreateTask} data-testid="submit-task-button" className="bg-[#0EA5E9] hover:bg-[#0284C7]">
                   Assign Task
                 </Button>
               </DialogFooter>

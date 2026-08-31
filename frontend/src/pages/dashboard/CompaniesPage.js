@@ -28,7 +28,7 @@ const CompaniesPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -46,7 +46,7 @@ const CompaniesPage = () => {
         </div>
         <Button
           data-testid="add-company-button"
-          className="bg-[#4F46E5] hover:bg-[#4338CA]"
+          className="bg-[#0EA5E9] hover:bg-[#0284C7]"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Company
@@ -63,7 +63,7 @@ const CompaniesPage = () => {
             <p className="text-[#64748B] dark:text-[#A1A1AA] mb-6">
               Create your first company to get started
             </p>
-            <Button className="bg-[#4F46E5] hover:bg-[#4338CA]">
+            <Button className="bg-[#0EA5E9] hover:bg-[#0284C7]">
               <Plus className="w-5 h-5 mr-2" />
               Add Company
             </Button>
@@ -84,7 +84,7 @@ const CompaniesPage = () => {
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 bg-[#4F46E5] rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-[#0EA5E9] rounded-xl flex items-center justify-center">
                       <Building2 className="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -105,7 +105,7 @@ const CompaniesPage = () => {
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-sm">
-                      <Users className="w-4 h-4 text-[#4F46E5]" />
+                      <Users className="w-4 h-4 text-[#0EA5E9]" />
                       <span className="font-medium text-[#0F172A] dark:text-[#FAFAFA]">
                         {company.employee_count || 0} Employees
                       </span>

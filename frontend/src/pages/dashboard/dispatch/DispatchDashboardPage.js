@@ -112,7 +112,7 @@ const DispatchDashboardPage = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card icon={Clock} label="Today's Dispatch" value={loading ? '...' : stats.today_total} color="bg-indigo-600" testid="stat-today" />
+        <Card icon={Clock} label="Today's Dispatch" value={loading ? '...' : stats.today_total} color="bg-sky-600" testid="stat-today" />
         <Card icon={CheckCircle2} label="Confirmed" value={stats.confirmed} color="bg-emerald-600" testid="stat-confirmed" />
         <Card icon={Clock} label="Pending" value={stats.pending} color="bg-amber-500" testid="stat-pending" />
         <Card icon={AlertTriangle} label="No Response" value={stats.no_response} color="bg-slate-500" testid="stat-noresp" />
@@ -126,7 +126,7 @@ const DispatchDashboardPage = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card icon={Building2} label="Clients" value={stats.clients} color="bg-sky-600" testid="stat-clients" />
         <Card icon={Building2} label="Vendors" value={stats.vendors} color="bg-teal-600" testid="stat-vendors" />
-        <Card icon={Shield} label="Security Officers" value={stats.officers} color="bg-violet-600" testid="stat-officers" />
+        <Card icon={Shield} label="Security Officers" value={stats.officers} color="bg-sky-600" testid="stat-officers" />
         <Card icon={MapPin} label="Post Sites" value={stats.post_sites} color="bg-cyan-600" testid="stat-posts" />
       </div>
     </div>

@@ -39,7 +39,7 @@ const ClientToday = () => {
           <h1 className="text-3xl font-bold text-[#0F172A] dark:text-[#FAFAFA]">Today's Dispatch</h1>
           <p className="text-[#64748B] dark:text-[#A1A1AA] mt-1">{formatLongDate(new Date())} · {rows.length} dispatch{rows.length !== 1 ? 'es' : ''}</p>
         </div>
-        <Button onClick={openAdd} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="client-today-add">
+        <Button onClick={openAdd} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="client-today-add">
           <Plus className="w-4 h-4 mr-2" /> Add Dispatch
         </Button>
       </div>

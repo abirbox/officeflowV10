@@ -64,7 +64,7 @@ const EmailSettingsTab = () => {
     <Card className="border-[#E2E8F0] dark:border-[#27272A]" data-testid="email-settings-tab">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Mail className="w-5 h-5 text-[#4F46E5]" /> Email Settings (SMTP)
+          <Mail className="w-5 h-5 text-[#0EA5E9]" /> Email Settings (SMTP)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -100,7 +100,7 @@ const EmailSettingsTab = () => {
               </div>
             </div>
 
-            <Button onClick={save} disabled={saving} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="save-email-settings-button">
+            <Button onClick={save} disabled={saving} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="save-email-settings-button">
               <Save className="w-4 h-4 mr-2" /> {saving ? 'Saving…' : 'Save Email Settings'}
             </Button>
           </>

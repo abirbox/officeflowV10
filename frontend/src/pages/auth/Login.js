@@ -68,7 +68,7 @@ const Login = () => {
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               ) : (
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-[#4F46E5] rounded-xl mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-[#0EA5E9] rounded-xl mb-4">
                   <LogIn className="w-8 h-8 text-white" />
                 </div>
               )}
@@ -121,7 +121,7 @@ const Login = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-11"
+                    className="pl-11 pr-11"
                     placeholder="••••••••"
                     required
                   />
@@ -132,7 +132,7 @@ const Login = () => {
                 <Link
                   to="/forgot-password"
                   data-testid="forgot-password-link"
-                  className="text-sm text-[#4F46E5] hover:text-[#4338CA] dark:text-[#6366F1] dark:hover:text-[#818CF8] transition-colors"
+                  className="text-sm text-[#0EA5E9] hover:text-[#0284C7] dark:text-[#0EA5E9] dark:hover:text-[#38BDF8] transition-colors"
                 >
                   Forgot password?
                 </Link>
@@ -142,7 +142,7 @@ const Login = () => {
                 type="submit"
                 data-testid="login-submit-button"
                 disabled={isLoading}
-                className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white h-11 rounded-lg transition-colors"
+                className="w-full bg-[#0EA5E9] hover:bg-[#0284C7] text-white h-11 rounded-lg transition-colors"
               >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
@@ -161,7 +161,7 @@ const Login = () => {
         </motion.div>
       </div>
 
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#4F46E5] to-[#7C3AED] items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0EA5E9] to-[#0369A1] items-center justify-center p-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -182,7 +182,7 @@ const Login = () => {
             {heroTitle}
           </h2>
 
-          <p className="text-xl text-indigo-100 leading-relaxed" data-testid="login-hero-subtitle">
+          <p className="text-xl text-sky-100 leading-relaxed" data-testid="login-hero-subtitle">
             {heroSubtitle}
           </p>
         </motion.div>

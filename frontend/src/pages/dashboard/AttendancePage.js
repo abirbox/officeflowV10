@@ -136,7 +136,7 @@ const AttendancePage = () => {
   };
 
   if (loading) {
-    return (<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div></div>);
+    return (<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div></div>);
   }
 
   const isWorking = todayAttendance?.is_working;
@@ -202,9 +202,9 @@ const AttendancePage = () => {
                 <div className="flex items-center gap-2 text-[#64748B] mb-1"><LogOut className="w-4 h-4" /><span className="text-xs font-medium">Last Out</span></div>
                 <p className="text-xl font-bold text-[#0F172A] dark:text-[#FAFAFA]">{sessions.length && sessions[sessions.length-1].check_out ? formatTime(sessions[sessions.length-1].check_out) : '-'}</p>
               </div>
-              <div className="p-4 bg-[#4F46E5]/5 rounded-xl">
-                <div className="flex items-center gap-2 text-[#4F46E5] mb-1"><Clock className="w-4 h-4" /><span className="text-xs font-medium">Total Today</span></div>
-                <p className="text-xl font-bold text-[#4F46E5]" data-testid="total-hours-today">{(todayAttendance?.total_hours || 0).toFixed(2)} hrs</p>
+              <div className="p-4 bg-[#0EA5E9]/5 rounded-xl">
+                <div className="flex items-center gap-2 text-[#0EA5E9] mb-1"><Clock className="w-4 h-4" /><span className="text-xs font-medium">Total Today</span></div>
+                <p className="text-xl font-bold text-[#0EA5E9]" data-testid="total-hours-today">{(todayAttendance?.total_hours || 0).toFixed(2)} hrs</p>
               </div>
             </div>
 
@@ -214,7 +214,7 @@ const AttendancePage = () => {
                 <p className="text-[#64748B] mb-4">
                   {todayAttendance ? 'You checked out. Start again anytime — today\'s hours will keep adding up.' : 'Start your workday and we\'ll track your hours and location.'}
                 </p>
-                <Button onClick={handleCheckIn} disabled={checkingIn} data-testid="check-in-button" className="bg-[#4F46E5] hover:bg-[#4338CA]">
+                <Button onClick={handleCheckIn} disabled={checkingIn} data-testid="check-in-button" className="bg-[#0EA5E9] hover:bg-[#0284C7]">
                   <Play className="w-5 h-5 mr-2" /> {checkingIn ? 'Starting…' : (todayAttendance ? 'Start Work Again' : 'Start Work / Check In')}
                 </Button>
               </div>
@@ -231,7 +231,7 @@ const AttendancePage = () => {
                   {sessions.map((s, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-[#F8FAFC] dark:bg-[#27272A] text-sm">
                       <div className="flex items-center gap-3">
-                        <Badge className="bg-[#4F46E5]/10 text-[#4F46E5]">#{idx + 1}</Badge>
+                        <Badge className="bg-[#0EA5E9]/10 text-[#0EA5E9]">#{idx + 1}</Badge>
                         <span className="text-[#0F172A] dark:text-[#FAFAFA]">{formatTime(s.check_in)} → {s.check_out ? formatTime(s.check_out) : <span className="text-green-600 font-medium">ongoing</span>}</span>
                       </div>
                       <span className="font-medium text-[#0F172A] dark:text-[#FAFAFA]">{(s.hours || 0).toFixed(2)} hrs</span>
@@ -248,7 +248,7 @@ const AttendancePage = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-[#F8FAFC] dark:bg-[#27272A] rounded-lg">
               <span className="text-sm text-[#64748B]">Sessions today</span>
-              <span className="text-lg font-bold text-[#4F46E5]">{sessions.length}</span>
+              <span className="text-lg font-bold text-[#0EA5E9]">{sessions.length}</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-[#F8FAFC] dark:bg-[#27272A] rounded-lg">
               <span className="text-sm text-[#64748B]">Status</span>

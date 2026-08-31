@@ -57,7 +57,7 @@ const EmployeesPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -76,7 +76,7 @@ const EmployeesPage = () => {
         <Button
           data-testid="add-employee-button"
           onClick={() => setAddOpen(true)}
-          className="bg-[#4F46E5] hover:bg-[#4338CA]"
+          className="bg-[#0EA5E9] hover:bg-[#0284C7]"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Employee
@@ -111,7 +111,7 @@ const EmployeesPage = () => {
               {searchQuery ? 'Try a different search' : 'Add your first employee to get started'}
             </p>
             {!searchQuery && (
-              <Button onClick={() => setAddOpen(true)} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="add-employee-empty-button">
+              <Button onClick={() => setAddOpen(true)} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="add-employee-empty-button">
                 <Plus className="w-5 h-5 mr-2" />
                 Add Employee
               </Button>
@@ -157,7 +157,7 @@ const EmployeesPage = () => {
                           <div className="relative">
                             <Avatar>
                               <AvatarImage src={employee.avatar_path} />
-                              <AvatarFallback className="bg-[#4F46E5] text-white">
+                              <AvatarFallback className="bg-[#0EA5E9] text-white">
                                 {employee.name.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>

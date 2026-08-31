@@ -19,12 +19,13 @@ import { todayIso, dhakaDateIso } from '@/lib/datetime';
 const SHIFT_TYPES = ['Morning', 'Afternoon', 'Evening', 'Night'];
 const CONF_STATUSES = ['Not Confirmed', 'Pending', 'Confirmed', 'Declined', 'No Response'];
 const CONF_METHODS = ['Call', 'Text', 'Call + Text'];
-const SHIFT_STATUSES = ['Not Started', 'Clocked In', 'Clocked Out'];
+const SHIFT_STATUSES = ['Not Started', 'Clocked In', 'Clocked Out', 'Cancelled'];
 const QUICK_ACTIONS = ['Clocked In', 'Clocked Out'];
 const STATUS_BADGE_MAP = {
   'Not Started': 'bg-[var(--status-not-started-bg)] text-[var(--status-not-started-fg)] border-[var(--status-not-started-bg)]',
   'Clocked In':  'bg-[var(--status-clocked-in-bg)] text-[var(--status-clocked-in-fg)] border-[var(--status-clocked-in-bg)]',
   'Clocked Out': 'bg-[var(--status-clocked-out-bg)] text-[var(--status-clocked-out-fg)] border-[var(--status-clocked-out-bg)]',
+  'Cancelled': 'bg-red-100 text-red-700 border-red-300',
 };
 
 // Row background tint by shift type — subtle so status badges stay readable.
@@ -32,7 +33,7 @@ const SHIFT_ROW_BG = {
   Morning:   'bg-amber-50 dark:bg-amber-950/20',
   Afternoon: 'bg-sky-50 dark:bg-sky-950/20',
   Evening:   'bg-orange-50 dark:bg-orange-950/25',
-  Night:     'bg-indigo-50 dark:bg-indigo-950/25',
+  Night:     'bg-sky-50 dark:bg-sky-950/25',
 };
 const DEFAULT_ROW_BG = 'bg-white dark:bg-[#18181B]';
 
@@ -926,7 +927,10 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
             {loading ? <tr><td colSpan={visibleCols.length + 1} className="px-4 py-8 text-center text-[#64748B]">Loading…</td></tr>
             : rows.length === 0 ? <tr><td colSpan={visibleCols.length + 1} className="px-4 py-8 text-center text-[#64748B]">No dispatch schedules found</td></tr>
             : rows.map((r, index) => {
-              const rowBgClass = SHIFT_ROW_BG[r.shift_type] || DEFAULT_ROW_BG;
+              const isCancelled = r.shift_status === 'Cancelled';
+              const rowBgClass = isCancelled
+                ? 'bg-red-100 text-red-800 opacity-75'
+                : (SHIFT_ROW_BG[r.shift_type] || DEFAULT_ROW_BG);
               const previousRow = index > 0 ? rows[index - 1] : null;
               const dateChanged = !previousRow || previousRow.date !== r.date;
               // Sticky cells must repaint the row-bg colour or the columns
@@ -1005,11 +1009,11 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
                       <button
                         type="button"
                         onClick={() => openActions(r)}
-                        className="text-left group focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/40 rounded text-xs"
+                        className="text-left group focus:outline-none focus:ring-2 focus:ring-[#0EA5E9]/40 rounded text-xs"
                         data-testid={`last-modified-${r.id}`}
                         title={`${r.last_modified_action || 'Modified'} · ${(r.last_modified_at || '').slice(0, 16).replace('T', ' ')} — click for full history`}
                       >
-                        <span className="font-medium text-[#4F46E5] group-hover:underline">{r.last_modified_by_name}</span>
+                        <span className="font-medium text-[#0EA5E9] group-hover:underline">{r.last_modified_by_name}</span>
                       </button>
                     ) : <span className="text-[#64748B]">—</span>;
                   case 'remarks': {
@@ -1044,7 +1048,7 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
                                         onClick={() => { setRemarkLineEdit({ rowId: r.id, idx: i }); setRemarkLineDraft(rm); }}
                                         title="Click to edit"
                                       >{rm}</span>
-                                      <button type="button" onClick={() => { setRemarkLineEdit({ rowId: r.id, idx: i }); setRemarkLineDraft(rm); }} className="opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-[#4F46E5] shrink-0" title="Edit remark" data-testid={`sched-remark-edit-${r.id}-${i}`}><Pencil className="w-3 h-3" /></button>
+                                      <button type="button" onClick={() => { setRemarkLineEdit({ rowId: r.id, idx: i }); setRemarkLineDraft(rm); }} className="opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-[#0EA5E9] shrink-0" title="Edit remark" data-testid={`sched-remark-edit-${r.id}-${i}`}><Pencil className="w-3 h-3" /></button>
                                       <button type="button" onClick={() => removeRemarkLine(r, i)} className="opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-[#DC2626] shrink-0" title="Remove remark" data-testid={`sched-remark-remove-${r.id}-${i}`}><X className="w-3 h-3" /></button>
                                     </>
                                   )}
@@ -1073,7 +1077,7 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
                           <button
                             type="button"
                             onClick={() => { setRemarkEditId(r.id); setRemarkDraft(''); }}
-                            className="inline-flex items-center gap-1 text-[11px] text-[#4F46E5] hover:underline mt-0.5"
+                            className="inline-flex items-center gap-1 text-[11px] text-[#0EA5E9] hover:underline mt-0.5"
                             data-testid={`sched-remark-add-${r.id}`}
                           >
                             <Plus className="w-3 h-3" /> Add remark
@@ -1119,9 +1123,11 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
                   {visibleCols.map((c, i) => {
                     // Tint the remarks cell green when the row actually has a remark.
                     const hasRemark = c.key === 'remarks' && getRemarksList(r).length > 0;
-                    const bgOverride = hasRemark
-                      ? 'bg-[#91fa89] dark:bg-emerald-900/60 text-[#052E16] dark:text-emerald-100'
-                      : columnCellBg(c.key);
+                    const bgOverride = isCancelled
+                      ? 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-200'
+                      : (hasRemark
+                        ? 'bg-[#91fa89] dark:bg-emerald-900/60 text-[#052E16] dark:text-emerald-100'
+                        : columnCellBg(c.key));
                     const textOverride = columnCellText(c.key);
                     const borderOverride = columnCellBorder(c.key);
                     // Sticky first cell must always have an explicit bg
@@ -1555,7 +1561,7 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
               <div className="space-y-2" data-testid="import-csv-result">
                 <div className="flex items-center gap-4 text-sm flex-wrap">
                   {importResult.dry_run && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300" data-testid="import-preview-badge">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300" data-testid="import-preview-badge">
                       Preview only — nothing saved
                     </span>
                   )}
@@ -1728,7 +1734,7 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-[#0F172A] dark:text-[#FAFAFA]">{a.actor_name || 'Unknown'}</span>
                       {a.actor_role && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 uppercase tracking-wider">
                           {a.actor_role.replace(/_/g, ' ')}
                         </span>
                       )}
@@ -1736,7 +1742,7 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
                     <span className="text-xs text-[#64748B]">{a.at?.slice(0, 16).replace('T', ' ')}</span>
                   </div>
                   <div className="mt-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_MAP[a.action] || 'bg-indigo-100 text-indigo-700'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_MAP[a.action] || 'bg-sky-100 text-sky-700'}`}>
                       {a.action}
                     </span>
                   </div>
@@ -1777,7 +1783,7 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
             <div className="flex items-center gap-2 flex-wrap pb-3 border-b border-[#E2E8F0] dark:border-[#27272A]" data-testid="active-filters-chips">
               <span className="text-xs font-semibold text-[#64748B]">Applied:</span>
               {activeChips.map(({ k, v }) => (
-                <span key={k} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs">
+                <span key={k} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-xs">
                   {k.replace('_', ' ')}: {String(v).slice(0, 16)}
                   <button onClick={() => setF(k, '')} data-testid={`chip-clear-${k}`} aria-label={`Clear ${k}`}><X className="w-3 h-3" /></button>
                 </span>
@@ -1990,7 +1996,7 @@ const DispatchSchedulePage = ({ todayOnly = false }) => {
                   onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch (err) { console.warn('dataTransfer.dropEffect unavailable', err); } }}
                   onDrop={(e) => { e.preventDefault(); moveColumn(dragKey, c.key); setDragKey(null); }}
                   onDragEnd={() => setDragKey(null)}
-                  className={`flex items-center gap-2 p-2 rounded-lg border ${isDragging ? 'border-[#4F46E5] bg-indigo-50 dark:bg-indigo-950' : 'border-[#E2E8F0] dark:border-[#27272A] bg-white dark:bg-[#18181B]'} select-none`}
+                  className={`flex items-center gap-2 p-2 rounded-lg border ${isDragging ? 'border-[#0EA5E9] bg-sky-50 dark:bg-sky-950' : 'border-[#E2E8F0] dark:border-[#27272A] bg-white dark:bg-[#18181B]'} select-none`}
                   data-testid={`column-item-${c.key}`}
                 >
                   <GripVertical className="w-4 h-4 text-[#94A3B8] cursor-grab active:cursor-grabbing" />

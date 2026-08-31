@@ -68,7 +68,7 @@ const EmployeeDetailPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -88,7 +88,7 @@ const EmployeeDetailPage = () => {
         <div className="flex items-center gap-6">
           <Avatar className="w-24 h-24">
             <AvatarImage src={employee.avatar_path} />
-            <AvatarFallback className="bg-[#4F46E5] text-white text-3xl">
+            <AvatarFallback className="bg-[#0EA5E9] text-white text-3xl">
               {employee.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -96,7 +96,7 @@ const EmployeeDetailPage = () => {
             <h1 className="text-4xl font-bold text-[#0F172A] dark:text-[#FAFAFA] tracking-tight">{employee.name}</h1>
             <p className="text-[#64748B] dark:text-[#A1A1AA] text-lg">{employee.email}</p>
             <div className="flex items-center gap-2 mt-2">
-              <Badge className="capitalize bg-[#4F46E5] text-white">{employee.role.replace('_', ' ')}</Badge>
+              <Badge className="capitalize bg-[#0EA5E9] text-white">{employee.role.replace('_', ' ')}</Badge>
               <Badge className={employee.status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400'}>
                 {employee.status}
               </Badge>
@@ -212,7 +212,7 @@ const EmployeeDetailPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRoleDialog(false)}>Cancel</Button>
-            <Button onClick={handleRoleChange} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="save-role-button">
+            <Button onClick={handleRoleChange} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="save-role-button">
               Save Role
             </Button>
           </DialogFooter>

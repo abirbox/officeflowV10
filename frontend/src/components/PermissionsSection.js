@@ -65,7 +65,7 @@ const PermissionsSection = ({ value = [], onChange }) => {
                 <button
                   type="button"
                   onClick={() => toggleGroup(group, !allInGroup)}
-                  className="text-xs text-[#4F46E5] hover:underline"
+                  className="text-xs text-[#0EA5E9] hover:underline"
                   data-testid={`perm-group-select-${group.key}`}
                 >
                   {allInGroup ? 'Deselect all' : 'Select all'}

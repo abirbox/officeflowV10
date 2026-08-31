@@ -22,7 +22,7 @@ const ClientPortalLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuthStore();
+  const { setAuthenticatedUser } = useAuthStore();
   const { settings, refresh } = useAppSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,12 +44,9 @@ const ClientPortalLogin = () => {
         setError('This account is not a client portal account. Please use the main sign-in at /login.');
         return;
       }
-      // Role matches — commit to the store the normal way so app state syncs.
-      const result = await login(email, password);
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
+      // Role matches — commit the already-authenticated user to the store.
+      // Do NOT call /auth/login again; the login request above already succeeded.
+      setAuthenticatedUser(data);
       refresh();
       navigate(from.startsWith('/client-portal') ? from : '/client-portal', { replace: true });
     } catch (err) {
@@ -87,13 +84,13 @@ const ClientPortalLogin = () => {
                 </div>
               )}
               <div className="inline-block px-2 py-0.5 rounded-full bg-[#E0F2FE] dark:bg-[#0C4A6E]/40 text-[#0369A1] dark:text-sky-200 text-[10px] uppercase tracking-wider font-semibold mb-2">
-                Client Portal
+                {settings?.client_login_badge || 'Client Portal'}
               </div>
               <h1 className="text-3xl font-bold text-[#0F172A] dark:text-[#FAFAFA] tracking-tight mb-2" data-testid="client-login-title">
-                Client Sign In
+                {settings?.client_login_title || 'Client Sign In'}
               </h1>
               <p className="text-[#64748B] dark:text-[#A1A1AA]">
-                Sign in to view your schedules, invoices and reports with {brandName}
+                {(settings?.client_login_subtitle || 'Sign in to view your schedules, invoices and reports') + ` with ${brandName}`}
               </p>
             </div>
 
@@ -108,7 +105,7 @@ const ClientPortalLogin = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="client-email" className="text-[#0F172A] dark:text-[#FAFAFA]">Client Email</Label>
+                <Label htmlFor="client-email" className="text-[#0F172A] dark:text-[#FAFAFA]">{settings?.client_login_email_label || 'Client Email'}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] dark:text-[#A1A1AA]" />
                   <Input
@@ -124,7 +121,7 @@ const ClientPortalLogin = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client-password" className="text-[#0F172A] dark:text-[#FAFAFA]">Password</Label>
+                <Label htmlFor="client-password" className="text-[#0F172A] dark:text-[#FAFAFA]">{settings?.client_login_password_label || 'Password'}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B] dark:text-[#A1A1AA]" />
                   <Input
@@ -143,35 +140,56 @@ const ClientPortalLogin = () => {
                 type="submit"
                 data-testid="client-login-submit"
                 disabled={isLoading}
-                className="w-full bg-[#0EA5E9] hover:bg-[#0284C7] text-white h-11 rounded-lg transition-colors"
+                className="w-full text-white h-11 rounded-lg transition-colors"
+                style={{
+                  backgroundColor: settings?.client_login_primary_color || '#0EA5E9',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    settings?.client_login_primary_hover_color || '#0284C7';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    settings?.client_login_primary_color || '#0EA5E9';
+                }}
               >
-                {isLoading ? 'Signing in...' : 'Sign In to Client Portal'}
+                {isLoading ? 'Signing in...' : (settings?.client_login_button_text || 'Sign In to Client Portal')}
               </Button>
             </form>
 
             <div className="mt-6 text-center space-y-2">
               <p className="text-xs text-[#64748B] dark:text-[#A1A1AA]">
-                Employees and admins:&nbsp;
-                <Link to="/login" className="text-[#4F46E5] hover:underline">use the main sign-in</Link>
+                {settings?.client_login_employee_text || 'Employees and admins:'}&nbsp;
+                <Link to="/login" className="text-[#0EA5E9] hover:underline">
+                  {settings?.client_login_employee_link_text || 'use the main sign-in'}
+                </Link>
               </p>
               <p className="text-xs text-[#94A3B8] dark:text-[#71717A]">
-                Don't have client access? Contact your {brandName} administrator.
+                {(settings?.client_login_contact_text || "Don't have client access? Contact your administrator.").replace(
+                  'your administrator',
+                  `your ${brandName} administrator`
+                )}
               </p>
             </div>
           </div>
         </motion.div>
       </div>
 
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0EA5E9] to-[#0369A1] items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 items-center justify-center p-12"
+        style={{
+          background: `linear-gradient(135deg, ${settings?.client_login_hero_start_color || '#0EA5E9'}, ${settings?.client_login_hero_end_color || '#0369A1'})`,
+        }}>
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
           className="text-white text-center max-w-lg"
         >
-          <h2 className="text-5xl font-bold mb-6 tracking-tight">{brandName} · Client Portal</h2>
+          <h2 className="text-5xl font-bold mb-6 tracking-tight">
+            {settings?.client_login_hero_title || `${brandName} · Client Portal`}
+          </h2>
           <p className="text-xl text-sky-100 leading-relaxed">
-            Live dispatch schedules, invoices, wage reports and post-site coverage — everything you need to keep your operation on track.
+            {settings?.client_login_hero_subtitle || 'Live dispatch schedules, invoices, wage reports and post-site coverage — everything you need to keep your operation on track.'}
           </p>
         </motion.div>
       </div>

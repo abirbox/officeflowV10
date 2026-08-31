@@ -136,7 +136,7 @@ class PostSiteUpdate(BaseModel):
 
 # ---------- Dispatch Schedule ----------
 SHIFT_TYPES = ["Morning", "Afternoon", "Evening", "Night"]
-SHIFT_STATUSES = ["Not Started", "Clocked In", "Clocked Out"]
+SHIFT_STATUSES = ["Not Started", "Clocked In", "Clocked Out", "Cancelled"]
 
 # Statuses that count as a "worked" shift for payroll / invoices / paid hours.
 # Once an officer is Clocked In the shift is treated as complete.

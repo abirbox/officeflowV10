@@ -529,7 +529,7 @@ const MonthGrid = ({ cursor, byDate, onSelect }) => {
               <div
                 className={`text-xs mb-1 font-medium ${
                   isToday
-                    ? 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#4F46E5] text-white'
+                    ? 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#0EA5E9] text-white'
                     : 'text-[#334155] dark:text-[#E4E4E7]'
                 }`}
               >
@@ -592,7 +592,7 @@ const WeekGrid = ({ cursor, byDate, onSelect }) => {
               <div
                 className={`px-3 py-2 border-b border-[#E2E8F0] dark:border-[#27272A] text-xs ${
                   isToday
-                    ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold'
+                    ? 'bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-semibold'
                     : 'bg-[#F8FAFC] dark:bg-[#0F0F11] text-[#64748B]'
                 }`}
               >

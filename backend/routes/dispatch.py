@@ -108,22 +108,33 @@ def _doc_out(doc: dict) -> dict:
     if not doc:
         return doc
 
-    d = dict(doc)
-    d["id"] = str(d.pop("_id"))
+    def _serialize(value):
+        if isinstance(value, ObjectId):
+            return str(value)
 
-    for k, v in list(d.items()):
-        if isinstance(v, datetime):
+        if isinstance(value, datetime):
             # MongoDB returns UTC datetimes as naive datetime objects.
             # Explicitly mark them as UTC before sending to the frontend.
-            if v.tzinfo is None:
-                v = v.replace(tzinfo=timezone.utc)
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            return value.isoformat()
 
-            d[k] = v.isoformat()
+        if isinstance(value, dict):
+            return {k: _serialize(v) for k, v in value.items()}
 
-        elif isinstance(v, ObjectId):
-            d[k] = str(v)
+        if isinstance(value, list):
+            return [_serialize(v) for v in value]
 
-    return d
+        if isinstance(value, tuple):
+            return [_serialize(v) for v in value]
+
+        return value
+
+    d = dict(doc)
+    if "_id" in d:
+        d["id"] = str(d.pop("_id"))
+
+    return _serialize(d)
 
 
 def _parse_hhmm(s: str) -> int:
@@ -760,20 +771,38 @@ async def _audit(db, actor, action, entity_type, entity_id,
     })
 
 
-async def _notify_dispatch(db, actor, title, message, link, event):
-    """Persist a notification for every dispatch-privileged user (except the
-    actor) and push a live event to any connected WebSocket clients."""
-    recipients = await db.users.find({"$and": [
-        {"role": {"$ne": "client"}},
-        {"$or": [
-            {"role": {"$in": ["super_admin", "hd"]}},
-            {"permissions": {"$in": [
-                "dispatch.confirmation.view", "dispatch.schedule.view", "dispatch.dashboard.view",
-            ]}},
-        ]},
-    ]}, {"_id": 1}).to_list(2000)
+async def _notify_dispatch(db, actor, title, message, link, event, client_id=None):
+    """Notify dispatch staff and, when provided, the linked client user."""
+    query = {"$or": [
+        {"role": {"$in": ["super_admin", "hd"]}},
+        {"permissions": {"$in": [
+            "dispatch.confirmation.view", "dispatch.schedule.view", "dispatch.dashboard.view",
+        ]}},
+    ]}
+
+    recipients = await db.users.find(query, {"_id": 1, "role": 1, "client_id": 1}).to_list(2000)
+
     actor_id = str(actor.get("_id"))
-    ids = [str(u["_id"]) for u in recipients if str(u["_id"]) != actor_id]
+    ids = []
+
+    for u in recipients:
+        uid = str(u["_id"])
+        if uid == actor_id:
+            continue
+
+        ids.append(uid)
+
+    # Add the client user linked to this schedule.
+    if client_id:
+        client_users = await db.users.find(
+            {"role": "client", "client_id": str(client_id)},
+            {"_id": 1}
+        ).to_list(100)
+
+        for u in client_users:
+            uid = str(u["_id"])
+            if uid != actor_id and uid not in ids:
+                ids.append(uid)
     now = _now()
     if ids:
         await db.notifications.insert_many([{
@@ -968,6 +997,18 @@ async def create_schedule(payload: ScheduleCreate, request: Request, db=Depends(
 
         res = await db.dispatch_schedules.insert_one(doc)
         created_ids.append(str(res.inserted_id))
+
+        await _notify_dispatch(
+            db, user,
+            title="New Shift Created",
+            message=f"{doc.get('date')} · {doc.get('shift_type')} · {doc.get('start_time')}–{doc.get('end_time')}",
+            link="/dashboard/dispatch/schedules",
+            event={
+                "type": "dispatch_schedule_created",
+                "schedule_id": str(res.inserted_id),
+            },
+            client_id=doc.get("client_id"),
+        )
 
         await db.dispatch_action_history.insert_one({
             "schedule_id": str(res.inserted_id),
@@ -1456,6 +1497,19 @@ async def update_schedule(sid: str, payload: ScheduleUpdate, request: Request, d
     await _audit(db, user, "update", "schedule", sid,
                  f"{existing.get('date')} {existing.get('shift_type')}",
                  changes=new_snapshot or None)
+
+    await _notify_dispatch(
+        db, user,
+        title="Shift Updated",
+        message=f"{existing.get('date')} · {existing.get('shift_type')} · {existing.get('start_time')}–{existing.get('end_time')}",
+        link="/dashboard/dispatch/schedules",
+        event={
+            "type": "dispatch_schedule_updated",
+            "schedule_id": sid,
+        },
+        client_id=existing.get("client_id"),
+    )
+
     return strip_financial(_doc_out(await db.dispatch_schedules.find_one({"_id": _oid(sid)})), user)
 
 
@@ -1486,6 +1540,20 @@ async def update_shift_status(sid: str, payload: ShiftStatusUpdate, request: Req
     await _audit(db, user, "status", "schedule", sid,
                  f"{existing.get('date')} {existing.get('shift_type')}",
                  changes={"shift_status": {"from": old_status, "to": payload.shift_status}})
+
+    await _notify_dispatch(
+        db, user,
+        title=f"Shift {payload.shift_status}",
+        message=f"{existing.get('date')} · {existing.get('shift_type')} · {old_status} → {payload.shift_status}",
+        link="/dashboard/dispatch/schedules",
+        event={
+            "type": "dispatch_shift_status",
+            "schedule_id": sid,
+            "status": payload.shift_status,
+        },
+        client_id=existing.get("client_id"),
+    )
+
     return strip_financial(_doc_out(await db.dispatch_schedules.find_one({"_id": _oid(sid)})), user)
 
 
@@ -1510,6 +1578,19 @@ async def cancel_schedule(sid: str, request: Request, db=Depends(get_db)):
     await db.dispatch_schedules.delete_one({"_id": _oid(sid)})
     await _audit(db, user, "delete", "schedule", sid,
                  f"{existing.get('date')} {existing.get('shift_type')}")
+
+    await _notify_dispatch(
+        db, user,
+        title="Shift Deleted",
+        message=f"{existing.get('date')} · {existing.get('shift_type')} · {existing.get('start_time')}–{existing.get('end_time')}",
+        link="/dashboard/dispatch/schedules",
+        event={
+            "type": "dispatch_schedule_deleted",
+            "schedule_id": sid,
+        },
+        client_id=existing.get("client_id"),
+    )
+
     return {"message": "Schedule deleted"}
 
 
@@ -1530,6 +1611,19 @@ async def delete_schedule(sid: str, request: Request, db=Depends(get_db)):
     await db.dispatch_schedules.delete_one({"_id": _oid(sid)})
     await _audit(db, user, "delete", "schedule", sid,
                  f"{existing.get('date')} {existing.get('shift_type')}")
+
+    await _notify_dispatch(
+        db, user,
+        title="Shift Deleted",
+        message=f"{existing.get('date')} · {existing.get('shift_type')} · {existing.get('start_time')}–{existing.get('end_time')}",
+        link="/dashboard/dispatch/schedules",
+        event={
+            "type": "dispatch_schedule_deleted",
+            "schedule_id": sid,
+        },
+        client_id=existing.get("client_id"),
+    )
+
     return {"message": "Schedule deleted"}
 
 
@@ -1626,6 +1720,7 @@ async def confirm_schedule(sid: str, payload: ConfirmationUpdate, request: Reque
             "status": payload.confirmation_status,
             "method": payload.confirmation_method,
         },
+        client_id=sched.get("client_id"),
     )
     return {"message": "Confirmation updated"}
 

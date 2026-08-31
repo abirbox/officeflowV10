@@ -125,7 +125,7 @@ const EntityCrudPage = ({ title, endpoint, permBase, fields, columns, statuses, 
             <div className="p-3 text-sm text-[#94A3B8]">No clients available</div>
           ) : clients.map((c) => (
             <label key={c.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-[#27272A]" data-testid={`client-option-${c.id}`}>
-              <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} className="accent-[#4F46E5]" />
+              <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} className="accent-[#0EA5E9]" />
               <span className="text-sm text-[#334155] dark:text-[#E4E4E7]">{c.name}{c.code ? ` (${c.code})` : ''}</span>
             </label>
           ))}
@@ -193,7 +193,7 @@ const EntityCrudPage = ({ title, endpoint, permBase, fields, columns, statuses, 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-3xl font-bold text-[#0F172A] dark:text-[#FAFAFA]">{title}</h1>
         {canCreate && (
-          <Button onClick={openCreate} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="create-btn">
+          <Button onClick={openCreate} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="create-btn">
             <Plus className="w-4 h-4 mr-2" /> Add {title.slice(0, -1)}
           </Button>
         )}
@@ -318,7 +318,7 @@ const EntityCrudPage = ({ title, endpoint, permBase, fields, columns, statuses, 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={submit} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="save-entity">Save</Button>
+            <Button onClick={submit} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="save-entity">Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

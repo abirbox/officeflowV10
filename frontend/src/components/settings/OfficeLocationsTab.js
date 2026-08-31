@@ -101,7 +101,7 @@ const OfficeLocationsTab = () => {
         <CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Office Locations</CardTitle>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="add-office-button">
+            <Button className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="add-office-button">
               <Plus className="w-4 h-4 mr-1" /> Add Office
             </Button>
           </DialogTrigger>
@@ -135,7 +135,7 @@ const OfficeLocationsTab = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={submit} disabled={busy} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="submit-office">{busy ? 'Saving…' : 'Save'}</Button>
+              <Button onClick={submit} disabled={busy} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="submit-office">{busy ? 'Saving…' : 'Save'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -149,7 +149,7 @@ const OfficeLocationsTab = () => {
               <div key={o.id} className="flex items-start justify-between p-4 rounded-lg bg-[#F8FAFC] dark:bg-[#27272A]" data-testid={`office-row-${o.id}`}>
                 <div>
                   <p className="font-medium text-[#0F172A] dark:text-[#FAFAFA] flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#4F46E5]" /> {o.name}
+                    <MapPin className="w-4 h-4 text-[#0EA5E9]" /> {o.name}
                   </p>
                   {o.address && <p className="text-sm text-[#64748B]">{o.address}</p>}
                   <p className="text-xs text-[#64748B] mt-1">

@@ -19,6 +19,7 @@ from utils.tz import dhaka_today_iso, dhaka_today
 from models.dispatch import (
     COMPLETED_STATUSES, SHIFT_TYPES,
     ScheduleCreate, ScheduleUpdate, OfficerCreate, OfficerUpdate,
+    VendorCreate, VendorUpdate,
     PostSiteCreate, PostSiteUpdate, ShiftStatusUpdate, ConfirmationUpdate,
 )
 from fastapi import UploadFile
@@ -70,6 +71,53 @@ def _strip_financial(d: dict) -> dict:
     for f in FINANCIAL_FIELDS:
         d.pop(f, None)
     return d
+
+
+@router.get("/notifications")
+async def portal_notifications(
+    request: Request,
+    db=Depends(get_db),
+    unread_only: bool = False,
+):
+    user = await get_client_user(request, db)
+
+    query = {"user_id": str(user["_id"])}
+    if unread_only:
+        query["read"] = False
+
+    notifs = await db.notifications.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).limit(50).to_list(50)
+
+    return [
+        {
+            **n,
+            "created_at": (
+                n["created_at"].isoformat()
+                if isinstance(n.get("created_at"), datetime)
+                else n.get("created_at")
+            ),
+        }
+        for n in notifs
+    ]
+
+
+@router.post("/notifications/read-all")
+async def portal_notifications_read_all(
+    request: Request,
+    db=Depends(get_db),
+):
+    user = await get_client_user(request, db)
+
+    await db.notifications.update_many(
+        {
+            "user_id": str(user["_id"]),
+            "read": False,
+        },
+        {"$set": {"read": True}},
+    )
+
+    return {"message": "All notifications marked as read"}
 
 
 CLIENT_DISPATCH_PERMS = [
@@ -126,6 +174,7 @@ class PortalProfileUpdate(BaseModel):
     name: Optional[str] = None
     logo_path: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
     contact_number: Optional[str] = None
     email: Optional[str] = None
 
@@ -237,6 +286,247 @@ async def portal_vendors(request: Request, db=Depends(get_db), search: str = "")
             row["logo_url"] = to_public_url(row["logo_path"])
         out.append(row)
     return out
+
+
+
+# =====================================================================
+# CLIENT PORTAL VENDOR CRUD
+# =====================================================================
+# Vendors are scoped to the logged-in client through client_ids.
+# Clients can create/edit only vendors belonging to themselves.
+# client_ids is NEVER accepted from the portal frontend.
+# =====================================================================
+
+@router.post("/vendors")
+async def portal_create_vendor(
+    payload: VendorCreate,
+    request: Request,
+    db=Depends(get_db),
+):
+    user = await get_client_user(request, db)
+    cid = str(user["client_id"])
+
+    data = payload.model_dump()
+
+    # Never allow a client to submit/change client_ids.
+    data.pop("client_ids", None)
+
+    if not data.get("name") or not str(data.get("name")).strip():
+        raise HTTPException(422, "Vendor name is required")
+
+    data["name"] = str(data["name"]).strip()
+
+    # Vendor code is optional. If supplied, ensure it is not already used.
+    code = data.get("code")
+    if code:
+        code = str(code).strip()
+        data["code"] = code
+
+        duplicate = await db.dispatch_vendors.find_one({
+            "code": code
+        })
+        if duplicate:
+            raise HTTPException(400, "Vendor code already exists")
+
+    # The client owns exactly itself.
+    data["client_ids"] = [cid]
+
+    data["created_by"] = str(user.get("_id"))
+    data["created_at"] = _now()
+    data["updated_by"] = str(user.get("_id"))
+    data["updated_at"] = _now()
+
+    res = await db.dispatch_vendors.insert_one(data)
+
+    saved = await db.dispatch_vendors.find_one({"_id": res.inserted_id})
+
+    await _plog(
+        db,
+        user,
+        "create",
+        "vendor",
+        f"Vendor created — {data.get('name')}",
+        entity_id=str(res.inserted_id),
+        changes={
+            k: v
+            for k, v in data.items()
+            if k not in ("client_ids", "created_by", "created_at",
+                         "updated_by", "updated_at")
+        },
+    )
+
+    row = _doc_out(saved)
+
+    # Do not expose internal relationship fields.
+    row.pop("client_ids", None)
+    row.pop("created_by", None)
+    row.pop("updated_by", None)
+    row.pop("created_at", None)
+    row.pop("updated_at", None)
+
+    if row.get("logo_path"):
+        row["logo_url"] = to_public_url(row["logo_path"])
+
+    return row
+
+
+@router.put("/vendors/{vid}")
+async def portal_update_vendor(
+    vid: str,
+    payload: VendorUpdate,
+    request: Request,
+    db=Depends(get_db),
+):
+    user = await get_client_user(request, db)
+    cid = str(user["client_id"])
+
+    existing = await db.dispatch_vendors.find_one({
+        "_id": _oid(vid),
+        "client_ids": cid,
+    })
+
+    if not existing:
+        raise HTTPException(404, "Vendor not found")
+
+    data = payload.model_dump(exclude_unset=True)
+
+    # Never allow portal users to modify ownership.
+    data.pop("client_ids", None)
+
+    if "name" in data:
+        if not data["name"] or not str(data["name"]).strip():
+            raise HTTPException(422, "Vendor name is required")
+        data["name"] = str(data["name"]).strip()
+
+    if "code" in data and data["code"]:
+        data["code"] = str(data["code"]).strip()
+
+        duplicate = await db.dispatch_vendors.find_one({
+            "code": data["code"],
+            "_id": {"$ne": _oid(vid)},
+        })
+
+        if duplicate:
+            raise HTTPException(400, "Vendor code already exists")
+
+    if not data:
+        return _doc_out(existing)
+
+    data["updated_by"] = str(user.get("_id"))
+    data["updated_at"] = _now()
+
+    await db.dispatch_vendors.update_one(
+        {"_id": _oid(vid), "client_ids": cid},
+        {"$set": data},
+    )
+
+    saved = await db.dispatch_vendors.find_one({
+        "_id": _oid(vid),
+        "client_ids": cid,
+    })
+
+    await _plog(
+        db,
+        user,
+        "update",
+        "vendor",
+        f"Vendor updated — {saved.get('name')}",
+        entity_id=vid,
+        changes={
+            k: v
+            for k, v in data.items()
+            if k not in ("updated_by", "updated_at")
+        },
+    )
+
+    row = _doc_out(saved)
+
+    row.pop("client_ids", None)
+    row.pop("created_by", None)
+    row.pop("updated_by", None)
+    row.pop("created_at", None)
+    row.pop("updated_at", None)
+
+    if row.get("logo_path"):
+        row["logo_url"] = to_public_url(row["logo_path"])
+
+    return row
+
+
+@router.delete("/vendors/{vid}")
+async def portal_delete_vendor(
+    vid: str,
+    request: Request,
+    db=Depends(get_db),
+):
+    user = await get_client_user(request, db)
+    cid = str(user["client_id"])
+
+    existing = await db.dispatch_vendors.find_one({
+        "_id": _oid(vid),
+        "client_ids": cid,
+    })
+
+    if not existing:
+        raise HTTPException(404, "Vendor not found")
+
+    # Do not allow deleting a vendor that is still assigned to post sites.
+    assigned_posts = await db.dispatch_post_sites.count_documents({
+        "client_id": cid,
+        "vendor_id": vid,
+    })
+
+    if assigned_posts > 0:
+        raise HTTPException(
+            400,
+            f"Vendor cannot be deleted because it is assigned to "
+            f"{assigned_posts} post site(s). Remove the assignments first."
+        )
+
+    await db.dispatch_vendors.delete_one({
+        "_id": _oid(vid),
+        "client_ids": cid,
+    })
+
+    await _plog(
+        db,
+        user,
+        "delete",
+        "vendor",
+        f"Vendor deleted — {existing.get('name')}",
+        entity_id=vid,
+    )
+
+    return {"message": "Vendor deleted"}
+
+
+@router.get("/vendors/{vid}/post-sites")
+async def portal_vendor_post_sites(
+    vid: str,
+    request: Request,
+    db=Depends(get_db),
+):
+    user = await get_client_user(request, db)
+    cid = str(user["client_id"])
+
+    # First prove the vendor belongs to this client.
+    vendor = await db.dispatch_vendors.find_one({
+        "_id": _oid(vid),
+        "client_ids": cid,
+    })
+
+    if not vendor:
+        raise HTTPException(404, "Vendor not found")
+
+    posts = await db.dispatch_post_sites.find({
+        "client_id": cid,
+        "vendor_id": vid,
+    }).sort([
+        ("status", 1),
+        ("name", 1),
+    ]).limit(500).to_list(500)
+
+    return [_doc_out(p) for p in posts]
 
 
 async def _allowed_vendor_ids(db, cid):
@@ -393,8 +683,54 @@ async def portal_officers(request: Request, db=Depends(get_db), search: str = ""
 @router.get("/post-sites")
 async def portal_post_sites(request: Request, db=Depends(get_db)):
     user = await get_client_user(request, db)
-    cid = user["client_id"]
-    docs = await db.dispatch_post_sites.find({"client_id": cid}).sort("name", 1).limit(500).to_list(500)
+    cid = str(user["client_id"])
+
+    # Post sites directly assigned to this client.
+    direct_docs = await db.dispatch_post_sites.find(
+        {"client_id": cid}
+    ).limit(500).to_list(500)
+
+    # Automatically include any post site that is used by a schedule
+    # belonging to this client. This allows an admin to schedule an
+    # existing post site for a client without manually assigning the
+    # post site to the client's portal account.
+    scheduled_docs = await db.dispatch_schedules.find(
+        {
+            "client_id": cid,
+            "post_site_id": {"$exists": True, "$ne": None},
+        },
+        {"post_site_id": 1},
+    ).limit(5000).to_list(5000)
+
+    scheduled_post_ids = {
+        str(s.get("post_site_id"))
+        for s in scheduled_docs
+        if s.get("post_site_id")
+    }
+
+    # Collect IDs already returned directly so we don't duplicate them.
+    direct_ids = {str(d["_id"]) for d in direct_docs}
+
+    scheduled_ids = []
+    for pid in scheduled_post_ids:
+        if pid not in direct_ids:
+            try:
+                scheduled_ids.append(_oid(pid))
+            except Exception:
+                pass
+
+    scheduled_extra_docs = []
+    if scheduled_ids:
+        scheduled_extra_docs = await db.dispatch_post_sites.find(
+            {"_id": {"$in": scheduled_ids}}
+        ).limit(500).to_list(500)
+
+    # Merge direct + automatically scheduled post sites.
+    docs = direct_docs + scheduled_extra_docs
+
+    # Sort consistently by post-site name.
+    docs.sort(key=lambda d: str(d.get("name") or "").lower())
+
     return [_doc_out(d) for d in docs]
 
 
@@ -448,16 +784,43 @@ def _now():
 
 
 async def _validate_owned_refs(db, cid, post_site_id, officer_id, vendor_id):
-    """Ensure the post site + officer belong to this client and the vendor
-    serves this client. Returns nothing; raises 400 on any violation."""
+    """Validate client-owned schedule references.
+
+    A post site is considered available to the client when:
+    1. It is directly assigned to the client, OR
+    2. It has already been used in a schedule belonging to the client.
+
+    This keeps the portal consistent with the automatic post-site list.
+    """
     post = await db.dispatch_post_sites.find_one({"_id": _oid(post_site_id)})
-    if not post or str(post.get("client_id") or "") != str(cid):
+
+    if not post:
+        raise HTTPException(400, "Post site not found")
+
+    post_client_id = str(post.get("client_id") or "")
+
+    # Directly assigned post site.
+    post_is_owned = post_client_id == str(cid)
+
+    # Automatically available if this post site has been scheduled
+    # for this client before.
+    if not post_is_owned:
+        existing_client_schedule = await db.dispatch_schedules.find_one({
+            "client_id": str(cid),
+            "post_site_id": str(post_site_id),
+        })
+
+        post_is_owned = existing_client_schedule is not None
+
+    if not post_is_owned:
         raise HTTPException(400, "Post site does not belong to your account")
+
     officer = await db.dispatch_officers.find_one({"_id": _oid(officer_id)})
     if not officer or str(officer.get("client_id") or "") != str(cid):
         raise HTTPException(400, "Officer does not belong to your account")
+
     vendor = await db.dispatch_vendors.find_one({"_id": _oid(vendor_id)})
-    if not vendor or cid not in (vendor.get("client_ids") or []):
+    if not vendor or str(cid) not in [str(x) for x in (vendor.get("client_ids") or [])]:
         raise HTTPException(400, "Vendor is not assigned to your account")
 
 

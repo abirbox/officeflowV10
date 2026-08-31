@@ -14,7 +14,7 @@ const ClientProfile = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
-    name: '', address: '', contact_number: '', email: '', logo_path: '', logo_url: '',
+    name: '', address: '', city: '', contact_number: '', email: '', logo_path: '', logo_url: '',
   });
 
   const load = () => {
@@ -25,6 +25,7 @@ const ClientProfile = () => {
         setForm({
           name: c.name || '',
           address: c.address || '',
+          city: c.city || '',
           contact_number: c.contact_number || '',
           email: c.email || '',
           logo_path: c.logo_path || '',
@@ -68,6 +69,7 @@ const ClientProfile = () => {
       const { data } = await api.put('/portal/profile', {
         name: form.name.trim(),
         address: form.address,
+        city: form.city,
         contact_number: form.contact_number,
         email: form.email,
         logo_path: form.logo_path || null,
@@ -87,7 +89,7 @@ const ClientProfile = () => {
     <div className="max-w-3xl space-y-6" data-testid="client-profile-page">
       <div>
         <h1 className="text-3xl font-bold text-[#0F172A] dark:text-[#FAFAFA]">Company Profile</h1>
-        <p className="text-[#64748B] dark:text-[#A1A1AA] mt-1">Update your company name, logo and contact details.</p>
+        <p className="text-[#64748B] dark:text-[#A1A1AA] mt-1">Update your company name, logo, city and contact details.</p>
       </div>
 
       {loading ? (
@@ -129,15 +131,19 @@ const ClientProfile = () => {
               <Label>Email</Label>
               <Input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="billing@company.com" data-testid="profile-email" />
             </div>
-            <div className="md:col-span-2 space-y-1.5">
+            <div className="space-y-1.5">
+              <Label>City</Label>
+              <Input value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="City" data-testid="profile-city" />
+            </div>
+            <div className="space-y-1.5">
               <Label>Address</Label>
-              <Input value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Street, City, State, ZIP" data-testid="profile-address" />
+              <Input value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Street, State, ZIP" data-testid="profile-address" />
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0] dark:border-[#27272A]">
             <Button variant="outline" onClick={load} disabled={saving}>Reset</Button>
-            <Button onClick={save} disabled={saving} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="profile-save">
+            <Button onClick={save} disabled={saving} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="profile-save">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               {saving ? 'Saving…' : 'Save Changes'}
             </Button>

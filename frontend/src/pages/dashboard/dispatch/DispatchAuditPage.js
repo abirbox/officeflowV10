@@ -14,8 +14,8 @@ import { formatDateTime } from '@/lib/datetime';
 const ACTION_BADGE = {
   create: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
   update: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
-  status: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
-  confirm: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  status: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
+  confirm: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
   cancel: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
   delete: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
   export: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300',
@@ -106,8 +106,8 @@ const DispatchAuditPage = () => {
     <div className="space-y-6" data-testid="dispatch-audit-page">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center">
-            <ScrollText className="w-6 h-6 text-[#4F46E5]" />
+          <div className="w-11 h-11 rounded-xl bg-[#0EA5E9]/10 flex items-center justify-center">
+            <ScrollText className="w-6 h-6 text-[#0EA5E9]" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-[#0F172A] dark:text-[#FAFAFA]">Audit Log</h1>
@@ -196,7 +196,7 @@ const DispatchAuditPage = () => {
                     <span className="font-medium text-[#0F172A] dark:text-[#FAFAFA]">{row.actor_name || '—'}</span>
                     {row.actor_role && <span className="ml-1 text-xs text-[#94A3B8]">({row.actor_role})</span>}
                     {row.client_name && (
-                      <div className="text-xs text-[#4F46E5] dark:text-[#A5B4FC] font-medium" data-testid={`audit-client-${i}`}>
+                      <div className="text-xs text-[#0EA5E9] dark:text-[#A5B4FC] font-medium" data-testid={`audit-client-${i}`}>
                         Client: {row.client_name}
                       </div>
                     )}

@@ -82,7 +82,7 @@ const LeavesPage = () => {
   ];
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div></div>;
+    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div></div>;
   }
 
   return (
@@ -98,7 +98,7 @@ const LeavesPage = () => {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="apply-leave-button" className="bg-[#4F46E5] hover:bg-[#4338CA]">
+            <Button data-testid="apply-leave-button" className="bg-[#0EA5E9] hover:bg-[#0284C7]">
               <Plus className="w-5 h-5 mr-2" />
               Apply for Leave
             </Button>
@@ -138,7 +138,7 @@ const LeavesPage = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleApply} data-testid="submit-leave-button" className="bg-[#4F46E5] hover:bg-[#4338CA]">Submit Request</Button>
+              <Button onClick={handleApply} data-testid="submit-leave-button" className="bg-[#0EA5E9] hover:bg-[#0284C7]">Submit Request</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -206,7 +206,7 @@ const LeavesPage = () => {
               {(isAdmin ? others : leaves).map((leave) => (
                 <div key={leave.id} className="p-4 bg-[#F8FAFC] dark:bg-[#27272A] rounded-lg flex items-center justify-between" data-testid={`leave-${leave.id}`}>
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-[#4F46E5] rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[#0EA5E9] rounded-lg flex items-center justify-center">
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                     <div>

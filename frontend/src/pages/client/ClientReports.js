@@ -52,7 +52,7 @@ const ClientReports = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-[#18181B] border border-[#E2E8F0] dark:border-[#27272A] rounded-xl p-5" data-testid="report-total-shifts">
-              <div className="w-10 h-10 rounded-lg bg-[#4F46E5]/10 text-[#4F46E5] flex items-center justify-center mb-3"><CalendarDays className="w-5 h-5" /></div>
+              <div className="w-10 h-10 rounded-lg bg-[#0EA5E9]/10 text-[#0EA5E9] flex items-center justify-center mb-3"><CalendarDays className="w-5 h-5" /></div>
               <div className="text-3xl font-bold text-[#0F172A] dark:text-[#FAFAFA]">{report?.totals?.shifts ?? 0}</div>
               <div className="text-sm text-[#64748B] dark:text-[#A1A1AA] mt-1">Total Shifts</div>
             </motion.div>

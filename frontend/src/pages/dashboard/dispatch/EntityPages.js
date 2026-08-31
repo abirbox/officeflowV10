@@ -17,7 +17,6 @@ export const ClientsPage = () => (
       { key: 'website', label: 'Website' },
       { key: 'address', label: 'Address' },
       { key: 'city', label: 'City' },
-      { key: 'location', label: 'Location', required: true },
       { key: 'notes', label: 'Notes', type: 'textarea' },
     ]}
   />
@@ -38,7 +37,6 @@ export const VendorsPage = () => (
       { key: 'website', label: 'Website' },
       { key: 'address', label: 'Address' },
       { key: 'city', label: 'City' },
-      { key: 'location', label: 'Location' },
       { key: 'notes', label: 'Notes', type: 'textarea' },
     ]}
   />

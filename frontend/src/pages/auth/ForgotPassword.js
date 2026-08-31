@@ -68,7 +68,7 @@ const ForgotPassword = () => {
           <div className="mb-8">
             <Link
               to="/login"
-              className="inline-flex items-center text-sm text-[#4F46E5] hover:text-[#4338CA] dark:text-[#6366F1] dark:hover:text-[#818CF8] mb-6"
+              className="inline-flex items-center text-sm text-[#0EA5E9] hover:text-[#0284C7] dark:text-[#0EA5E9] dark:hover:text-[#38BDF8] mb-6"
               data-testid="back-link"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -112,7 +112,7 @@ const ForgotPassword = () => {
               type="submit"
               data-testid="forgot-password-submit-button"
               disabled={isLoading}
-              className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white h-11 rounded-lg transition-colors"
+              className="w-full bg-[#0EA5E9] hover:bg-[#0284C7] text-white h-11 rounded-lg transition-colors"
             >
               {isLoading ? 'Sending...' : 'Send Reset Link'}
             </Button>

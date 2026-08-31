@@ -258,7 +258,7 @@ const BrandingTab = () => {
                 }
                 className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${
                   form.not_found_lottie_enabled
-                    ? 'bg-[#4F46E5]'
+                    ? 'bg-[#0EA5E9]'
                     : 'bg-[#CBD5E1] dark:bg-[#3F3F46]'
                 }`}
                 aria-label="Toggle 404 Lottie animation"
@@ -334,7 +334,7 @@ const BrandingTab = () => {
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={save} disabled={saving} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="save-branding-button">
+          <Button onClick={save} disabled={saving} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="save-branding-button">
             <Save className="w-4 h-4 mr-2" /> {saving ? 'Saving…' : 'Save Changes'}
           </Button>
         </div>

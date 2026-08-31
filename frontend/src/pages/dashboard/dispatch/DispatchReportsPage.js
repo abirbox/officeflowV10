@@ -715,7 +715,7 @@ const downloadEntityDetail = async (fmt, opts = {}) => {
                       {cols.map((c, j) => (
                         <td key={c.key} className="px-3 py-2 text-[#334155] dark:text-[#E4E4E7]">
                           {j === 0 && clickable ? (
-                            <span className="text-[#4F46E5] hover:underline font-medium inline-flex items-center gap-1">
+                            <span className="text-[#0EA5E9] hover:underline font-medium inline-flex items-center gap-1">
                               {r[c.key] ?? '—'} <ChevronRight className="w-3 h-3" />
                             </span>
                           ) : FINANCIAL_KEYS.has(c.key)

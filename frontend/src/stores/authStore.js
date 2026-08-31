@@ -5,47 +5,113 @@ const useAuthStore = create((set) => ({
   user: null,
   isLoading: true,
   isAuthenticated: false,
+  hasCheckedAuth: false,
+
+  setAuthenticatedUser: (user) => {
+    set({
+      user,
+      isAuthenticated: true,
+      isLoading: false,
+      hasCheckedAuth: true,
+    });
+
+    return user;
+  },
 
   checkAuth: async () => {
+    // Prevent duplicate auth requests.
+    const current = useAuthStore.getState();
+
+    if (current.hasCheckedAuth) {
+      return current.user;
+    }
+
     try {
       const { data } = await api.get('/auth/me');
-      set({ user: data, isAuthenticated: true, isLoading: false });
+
+      set({
+        user: data,
+        isAuthenticated: true,
+        isLoading: false,
+        hasCheckedAuth: true,
+      });
+
+      return data;
     } catch (error) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        hasCheckedAuth: true,
+      });
+
+      return null;
     }
   },
 
   login: async (email, password) => {
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      set({ user: data, isAuthenticated: true });
+
+      set({
+        user: data,
+        isAuthenticated: true,
+        isLoading: false,
+        hasCheckedAuth: true,
+      });
+
       return { success: true, user: data };
     } catch (error) {
-      const message = formatApiErrorDetail(error.response?.data?.detail) || error.message;
-      return { success: false, error: message };
+      const message =
+        formatApiErrorDetail(error.response?.data?.detail) ||
+        error.message;
+
+      return {
+        success: false,
+        error: message,
+      };
     }
   },
 
   register: async (userData) => {
     try {
       const { data } = await api.post('/auth/register', userData);
-      set({ user: data, isAuthenticated: true });
+
+      set({
+        user: data,
+        isAuthenticated: true,
+        isLoading: false,
+        hasCheckedAuth: true,
+      });
+
       return { success: true };
     } catch (error) {
-      const message = formatApiErrorDetail(error.response?.data?.detail) || error.message;
-      return { success: false, error: message };
+      const message =
+        formatApiErrorDetail(error.response?.data?.detail) ||
+        error.message;
+
+      return {
+        success: false,
+        error: message,
+      };
     }
   },
 
   logout: async () => {
     try {
       await api.post('/auth/logout');
-      set({ user: null, isAuthenticated: false });
-      return { success: true };
     } catch (error) {
-      set({ user: null, isAuthenticated: false });
-      return { success: true };
+      // Logout locally even if backend request fails.
     }
+
+    set({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      hasCheckedAuth: true,
+    });
+
+    return { success: true };
   },
 
   forgotPassword: async (email) => {
@@ -53,18 +119,34 @@ const useAuthStore = create((set) => ({
       await api.post('/auth/forgot-password', { email });
       return { success: true };
     } catch (error) {
-      const message = formatApiErrorDetail(error.response?.data?.detail) || error.message;
-      return { success: false, error: message };
+      const message =
+        formatApiErrorDetail(error.response?.data?.detail) ||
+        error.message;
+
+      return {
+        success: false,
+        error: message,
+      };
     }
   },
 
   resetPassword: async (token, new_password) => {
     try {
-      await api.post('/auth/reset-password', { token, new_password });
+      await api.post('/auth/reset-password', {
+        token,
+        new_password,
+      });
+
       return { success: true };
     } catch (error) {
-      const message = formatApiErrorDetail(error.response?.data?.detail) || error.message;
-      return { success: false, error: message };
+      const message =
+        formatApiErrorDetail(error.response?.data?.detail) ||
+        error.message;
+
+      return {
+        success: false,
+        error: message,
+      };
     }
   },
 }));

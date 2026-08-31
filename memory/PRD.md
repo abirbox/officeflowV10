@@ -1,75 +1,44 @@
-# OfficeFlow V9 — PRD
+# OfficeFlow V10 — PRD
 
 ## Original problem statement
-Load https://github.com/abirbox/officeflowv9client.git and make a preview with the
-full code unchanged. After preview we will make changes. Planned first change: new features.
+Load the updated OfficeFlow V10 codebase (https://github.com/abirbox/officeflowV10.git)
+and make it run/preview. (Supersedes the earlier V9 client load and iterative client-portal
+features, which V10 already incorporates.)
 
 ## Architecture
-- **Backend**: FastAPI (`/app/backend`), 21 route modules under `/api`, MongoDB via `MONGO_URL`,
-  cookie-based JWT auth (`access_token`/`refresh_token`, HttpOnly, SameSite=None, Secure).
-  Local filesystem storage at `/app/backend/uploads` served via `/api/files/*`.
-  WebSocket `/api/ws/dispatch` for real-time dispatch events.
-- **Frontend**: React 19 + CRACO + Tailwind + shadcn/ui. Axios uses relative `/api` (same origin),
-  zustand `authStore`. Pages: auth, dashboard, client portal.
-- **Domain**: Office/HR management — employees, attendance, GPS tasks, leaves, overtime, payroll,
-  shifts, dispatch (clients/vendors/officers/post-sites/schedules/invoices/payments), reports,
-  notifications, settings (branding/colors/email/office-locations), client portal.
+- **Backend**: FastAPI (`/app/backend`), routers mounted under `/api`, MongoDB via `MONGO_URL`,
+  cookie-based JWT auth. Local filesystem storage at `/app/backend/uploads` served via `/api/files/*`.
+  WebSocket `/api/ws/dispatch` for real-time dispatch (fails harmlessly in preview ingress).
+- **Frontend**: React 19 + CRACO + Tailwind + shadcn/ui. Axios relative `/api` (same origin),
+  zustand `authStore` with `checkAuth`/`hasCheckedAuth`; `GuestRoute`/`ProtectedRoute` gates.
+- **Domain**: Office/HR + Dispatch — employees, attendance, GPS tasks, leaves, overtime, payroll,
+  shifts, dispatch (clients/vendors/officers/post-sites/schedules/invoices/payments/reports/audit),
+  and a client portal (dashboard, schedules, officers, post-sites, vendors, Payment SO, Wage Report,
+  Invoices, Company Profile).
 
-## Environment / setup done (2026-06)
-- Cloned repo into `/app`, preserving `.git`, `.emergent`, and existing `.env` files.
-- Added to `backend/.env`: `JWT_SECRET`, `FRONTEND_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
-  (kept existing `MONGO_URL`, `DB_NAME`, `CORS_ORIGINS`).
-- Installed backend deps from `requirements.txt` (excluded already-present emergentintegrations/litellm
-  wheel to avoid a pip URL-resolver conflict; not imported anywhere).
-- `yarn install` for frontend. Both services run under supervisor.
+## Load / setup done (2026-06)
+- Cloned V10 into `/app`, preserving `.git`, `.emergent`, existing `.env` files, and `node_modules`.
+- backend/.env kept: MONGO_URL, DB_NAME, CORS_ORIGINS, JWT_SECRET, FRONTEND_URL, ADMIN_EMAIL/PASSWORD.
+- Installed backend deps from requirements.txt (excluded already-present emergentintegrations/litellm
+  URL wheel to avoid a pip resolver conflict). `yarn install` for frontend. Both run under supervisor.
+- Same MongoDB as before (data preserved), so existing accounts/records remain.
 
-## Verified
-- Backend health, root, and full cookie auth flow via curl: `POST /api/auth/login` → 200 (sets cookies),
-  `GET /api/auth/me` with cookies → 200. Admin seeded on empty DB.
-- Frontend login page renders at the preview URL.
-- NOTE: The screenshot automation harness does not persist SameSite=None cookies, so its UI login
-  could not advance to the dashboard; verified the underlying flow works via API. Not an app bug.
+## Verified (testing agent iteration_20 — real browser)
+- Backend 100%, frontend 100%. `/api/health` healthy; admin + client logins 200; `/api/auth/me` 401 ~115ms.
+- Admin: login → workspace chooser → Dispatch Portal; Schedule, Invoices, Payment SO, Wage Report
+  (reports), Audit Log all load with data.
+- Client portal: login → dashboard; Payment SO, Wage Report, Invoices, Company Profile all load,
+  scoped to the client's account.
+- NOTE: the lightweight screenshot tool's browser could not complete the `/api/auth/me` XHR, so it hung
+  on the guest-route "Loading..." spinner — a harness artifact, not an app bug.
 
 ## Test credentials
-- Admin (super_admin): admin@example.com / admin123 (see `/app/memory/test_credentials.md`)
+- Admin (super_admin): admin@example.com / admin123
+- Client: info@arseas.com / Client@123 (Arseas Security Services INC) — login at /client-portal/login
+
+## Routes
+- Admin nested under `/dashboard/dispatch/*` (schedules, invoices, payment-so, reports, audit).
+- Client portal: `/client-portal/{dashboard,today,schedules,calendar,officers,post-sites,vendors,payments,wage-report,invoices,profile}`.
 
 ## Backlog / next
-- P1: Confirm dashboard + module flows via a real testing pass once user requests changes.
-
-## Feature: Client Portal — Wage Reports edit/export + Payment SO CRUD + admin audit (2026-06)
-- **Payment SO (client-scoped full CRUD)**: `/api/portal/payments/records` POST/PUT/DELETE, `/api/portal/payments/officers/search` (scoped to own officers), per-officer + client exports. Frontend `ClientPaymentSO.js` rewritten with Add/Edit/Delete + officer detail view.
-- **Wage Report edit/export**: `PUT /api/portal/wage-report/officer/{id}/rate` (sets duty rate across the officer's shifts in the period, recalculates wages), `GET /api/portal/wage-report/report/{fmt}` (PDF/XLSX). Frontend `ClientWageReport.js` adds Rate column, Edit Rate dialog, report export buttons. All scoped to the client's own account with ownership checks (404 on non-owned).
-- **Audit visibility**: new `_plog()` in client_portal.py writes every client action (create/update/delete/export on payment_so & wage_report) to `dispatch_audit` with `client_name`. `dispatch.py` AUDIT_ENTITY_TYPES += payment_so, wage_report; AUDIT_ACTIONS += export. Admin `DispatchAuditPage.js` shows "Client: <name>", export badge, new entity labels.
-- Verified: testing agent iteration_14 — backend 9/9 pytest, frontend 100%, no bugs.
-
-## Feature: Client Wage Report now REUSES the admin component (2026-06)
-- Client portal `/client-portal/wage-report` now renders the **exact admin `DispatchReportsPage`** (not a duplicate) — same tabs (Schedules, By Officer, By Post Site, By Client, By Vendor), filters, exports, payslip & advance-salary actions. Deleted the old custom `ClientWageReport.js`.
-- Reuse mechanism: `DispatchReportsPage` switched from raw `api` to `useScopedApi()`; `ClientPortalLayout` wraps it in `<ScopeProvider base="/portal/dispatch">` so every `/dispatch/*` call rewrites to `/portal/dispatch/*`. `window.open` payslip PDF uses new `useScopeBase()`.
-- Backend: added `/portal/dispatch/reports/*`, `/portal/dispatch/advance-salary/*`, `/portal/dispatch/payslip-records/*` wrappers that force the client's scope and log exports/mutations to `dispatch_audit` with `client_name`. `dispatch.py` aggregate/export/entity-detail endpoints made client-scopable (optional `client_id`, backward compatible). `CLIENT_DISPATCH_PERMS` += reports/financial perms. Removed the now-orphaned legacy `/portal/wage-report*` endpoints.
-- Admin `/dashboard/dispatch/reports` unchanged (global, unscoped). Direct `/api/dispatch/*` stays 403 for role=client.
-- Verified: testing agent iteration_15 — backend 11/11 pytest, frontend 100%, no bugs (reuse, scoping, exports+audit, admin regression, security all pass).
-
-## Feature: Client Payment SO now REUSES the admin component (2026-06)
-- Client portal `/client-portal/payments` now renders the **exact admin `PaymentSOPage`** (deleted the duplicate `ClientPaymentSO.js`). Same client-list → officer-records → officer-detail flow, Add/Edit/Delete entries, officer search, PDF/Excel exports.
-- Reuse: `PaymentSOPage`'s 5 sub-components use `useScopedApi()`; `scopedApi.makeScoped` now also rewrites `/so-payments/*` → `/portal/so-payments/*` under the portal root.
-- Backend: `/portal/so-payments/*` wrappers (psp_*) force the client's scope, validate officer/record ownership, and log create/update/delete/export to `dispatch_audit` (entity payment_so) with `client_name`. `CLIENT_DISPATCH_PERMS` += `dispatch.payment_so.view`. Removed the old iteration-14 `/portal/payments/*` endpoints. `so_payments` router now has `_block_client_role` so direct `/api/so-payments/*` is 403 for clients.
-- Admin Payment SO unchanged (lists all clients). Verified: testing agent iteration_16 — backend 8/8 pytest, frontend 100%, no bugs.
-
-## Feature: Client Invoices (reuse admin component) + admin "Generated by Client" label (2026-06)
-- Client portal `/client-portal/invoices` renders the **exact admin `DispatchInvoicesPage`** (scoped via ScopeProvider + `useScopedApi`). Clients can generate, preview, edit, download and delete invoices; all saved to the same `dispatch_invoices` collection.
-- Backend `/portal/dispatch/invoices/*` wrappers (pd_invoice_*) force the client's own account as BILLING FROM, validate invoice ownership, stamp `generated_by_role='client'` + `generated_by_client_id/name`, and log create/update/delete/export to `dispatch_audit` (entity 'invoice'). `dispatch_invoices` router now blocks role=client (direct `/api/dispatch/invoices/*` → 403).
-- Admin Dispatch → Invoices shows client-generated invoices alongside admin ones with an amber **"Generated by Client · <name>"** badge (admin-created rows have none). `AUDIT_ENTITY_TYPES` += 'invoice'; audit label added.
-- Removed the **Reports** item from the client portal navbar (added **Invoices**).
-- Verified: testing agent iteration_17 — backend 12/12 pytest, frontend 100%, no bugs (reuse, create/download, scoping, admin badge, admin regression, audit, security).
-
-## Feature: Client self-service Company Profile (2026-06)
-- New client portal page `/client-portal/profile` (`ClientProfile.js`, nav item "Company Profile") lets a client edit their OWN name, logo, address, phone and email.
-- Backend `PUT /portal/profile` (portal_update_profile) updates only the logged-in client's `dispatch_clients` record (no id param → session-scoped), guards against blanking the name, and logs an "update"/client audit row with client_name + actor_role=client. Logo uses the existing `/portal/dispatch/upload-logo`; `GET /portal/me` prefills and returns `logo_url`.
-- Admin sees the updated client record (Dispatch → Clients) and the audit entry.
-- Verified: testing agent iteration_18 — backend 6/6 pytest, frontend 100%, no bugs.
-
-## Change: Invoice client label = short code, admin-only (2026-06)
-- Replaced the "Generated by Client · <name>" tag with a compact badge showing ONLY the client's short code (e.g. `ARS`). Stored as `generated_by_client_code` on create (existing client invoices backfilled).
-- The badge renders ONLY in the admin panel (reused `DispatchInvoicesPage` checks `useScopeBase()` — default `/dispatch` shows it, `/portal/dispatch` hides it). Never shown in the client portal. Clients still see only their own account's invoices.
-- Verified: testing agent iteration_19 — frontend 100% (admin code-only badge, admin-created unbadged, client portal hides label, client sees only own invoices).
-
+- Optional: silence the harmless `/api/ws/dispatch` WebSocket warnings in preview.

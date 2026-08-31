@@ -69,7 +69,6 @@ function App() {
           />
           {/* Legacy paths — keep them alive so existing links / bookmarks
               still land in the right place. */}
-          <Route path="/client-portal" element={<Navigate to="/client-portal/dashboard" replace />} />
           <Route path="/client" element={<Navigate to="/client-portal/dashboard" replace />} />
           <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

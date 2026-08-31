@@ -65,7 +65,7 @@ const ClientCalendar = () => {
           <p className="text-sm text-[#64748B] mt-1">{rows.length} scheduled shift{rows.length !== 1 && 's'} in view</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => openAdd()} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="client-calendar-add">
+          <Button onClick={() => openAdd()} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="client-calendar-add">
             <Plus className="w-4 h-4 mr-2" /> Add Dispatch
           </Button>
           <Select value={view} onValueChange={setView}>
@@ -114,8 +114,8 @@ const MonthGrid = ({ cursor, byDate, onSelect, onAdd }) => {
           return (
             <div key={dStr} className={`min-h-[110px] p-2 group ${inMonth ? '' : 'bg-[#FAFAFA] dark:bg-[#0F0F11] opacity-60'}`} data-testid={`client-cal-cell-${dStr}`}>
               <div className="flex items-center justify-between">
-                <div className={`text-xs mb-1 font-medium ${isToday ? 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#4F46E5] text-white' : 'text-[#334155] dark:text-[#E4E4E7]'}`}>{d.getDate()}</div>
-                <button onClick={() => onAdd(dStr)} className="opacity-0 group-hover:opacity-100 text-[#4F46E5] text-xs" title="Add" data-testid={`client-cal-add-${dStr}`}>+</button>
+                <div className={`text-xs mb-1 font-medium ${isToday ? 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#0EA5E9] text-white' : 'text-[#334155] dark:text-[#E4E4E7]'}`}>{d.getDate()}</div>
+                <button onClick={() => onAdd(dStr)} className="opacity-0 group-hover:opacity-100 text-[#0EA5E9] text-xs" title="Add" data-testid={`client-cal-add-${dStr}`}>+</button>
               </div>
               <div className="space-y-1">
                 {events.slice(0, 3).map((e) => (
@@ -146,9 +146,9 @@ const WeekGrid = ({ cursor, byDate, onSelect, onAdd }) => {
           const isToday = dStr === today;
           return (
             <div key={dStr} className="min-h-[400px] group">
-              <div className={`px-3 py-2 border-b border-[#E2E8F0] dark:border-[#27272A] text-xs flex items-center justify-between ${isToday ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold' : 'bg-[#F8FAFC] dark:bg-[#0F0F11] text-[#64748B]'}`}>
+              <div className={`px-3 py-2 border-b border-[#E2E8F0] dark:border-[#27272A] text-xs flex items-center justify-between ${isToday ? 'bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-semibold' : 'bg-[#F8FAFC] dark:bg-[#0F0F11] text-[#64748B]'}`}>
                 <span>{formatDate(d)}</span>
-                <button onClick={() => onAdd(dStr)} className="opacity-0 group-hover:opacity-100 text-[#4F46E5]" title="Add" data-testid={`client-week-add-${dStr}`}>+</button>
+                <button onClick={() => onAdd(dStr)} className="opacity-0 group-hover:opacity-100 text-[#0EA5E9]" title="Add" data-testid={`client-week-add-${dStr}`}>+</button>
               </div>
               <div className="p-2 space-y-2">
                 {events.length === 0 ? <div className="text-xs text-[#94A3B8]">No shifts</div> : events.map((e) => (

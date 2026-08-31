@@ -39,7 +39,7 @@ const CalendarPage = () => {
             View events, deadlines, and meetings
           </p>
         </div>
-        <Button data-testid="add-event-button" className="bg-[#4F46E5] hover:bg-[#4338CA]">
+        <Button data-testid="add-event-button" className="bg-[#0EA5E9] hover:bg-[#0284C7]">
           <Plus className="w-5 h-5 mr-2" />
           Add Event
         </Button>
@@ -77,7 +77,7 @@ const CalendarPage = () => {
                 className={`aspect-square p-2 rounded-lg border ${
                   day
                     ? isToday(day)
-                      ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
+                      ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]'
                       : 'bg-white dark:bg-[#18181B] border-[#E2E8F0] dark:border-[#27272A] hover:bg-[#F8FAFC] dark:hover:bg-[#27272A]'
                     : 'border-transparent'
                 } transition-colors cursor-pointer`}

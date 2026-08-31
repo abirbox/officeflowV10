@@ -55,14 +55,14 @@ const OvertimePage = () => {
     return <Badge className={map[s] || 'bg-gray-100 text-gray-700'} data-testid={`ot-status-${s}`}>{s}</Badge>;
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
     <div data-testid="overtime-page">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-bold text-[#0F172A] dark:text-[#FAFAFA] tracking-tight mb-2 flex items-center gap-3">
-            <TrendingUp className="w-8 h-8 text-[#4F46E5]" />
+            <TrendingUp className="w-8 h-8 text-[#0EA5E9]" />
             Overtime {isManager ? 'Approvals' : 'Requests'}
           </h1>
           <p className="text-[#64748B] dark:text-[#A1A1AA] text-lg">
@@ -79,7 +79,7 @@ const OvertimePage = () => {
               size="sm"
               variant={filter === s ? 'default' : 'outline'}
               onClick={() => setFilter(s)}
-              className={filter === s ? 'bg-[#4F46E5] hover:bg-[#4338CA]' : ''}
+              className={filter === s ? 'bg-[#0EA5E9] hover:bg-[#0284C7]' : ''}
               data-testid={`ot-filter-${s}`}
             >
               {s}
@@ -117,7 +117,7 @@ const OvertimePage = () => {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-[#4F46E5]">+{r.overtime_hours}h</p>
+                      <p className="text-2xl font-bold text-[#0EA5E9]">+{r.overtime_hours}h</p>
                       <p className="text-xs text-[#64748B]">on top of 8h baseline</p>
                     </div>
                   </div>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/axios';
-import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { motion } from 'framer-motion';
 import { CalendarDays, CalendarClock, CheckCircle2, Building2, Shield, MapPin, UserCheck, MapPinned, Wallet } from 'lucide-react';
 
@@ -25,8 +24,7 @@ const ClientDashboard = () => {
   const [summary, setSummary] = useState(null);
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { settings } = useAppSettings();
-  const currency = settings?.currency_symbol || '$';
+  const currency = '$';
 
   useEffect(() => {
     Promise.all([
@@ -61,11 +59,11 @@ const ClientDashboard = () => {
             accent="bg-emerald-500/10 text-emerald-600"
             delay={0.1}
           />
-          <StatCard icon={CalendarDays} label="Total Schedules" value={summary?.total_schedules ?? 0} accent="bg-[#4F46E5]/10 text-[#4F46E5]" delay={0.15} />
+          <StatCard icon={CalendarDays} label="Total Schedules" value={summary?.total_schedules ?? 0} accent="bg-[#0EA5E9]/10 text-[#0EA5E9]" delay={0.15} />
           <StatCard icon={CalendarClock} label="Upcoming Schedules" value={summary?.upcoming_schedules ?? 0} accent="bg-amber-500/10 text-amber-600" delay={0.2} />
           <StatCard icon={CheckCircle2} label="Completed Shifts" value={summary?.completed_schedules ?? 0} accent="bg-sky-500/10 text-sky-600" delay={0.25} />
-          <StatCard icon={Building2} label="My Vendors" value={summary?.vendors ?? 0} accent="bg-violet-500/10 text-violet-600" delay={0.3} />
-          <StatCard icon={Shield} label="Security Officers" value={summary?.officers ?? 0} accent="bg-indigo-500/10 text-indigo-600" delay={0.35} />
+          <StatCard icon={Building2} label="My Vendors" value={summary?.vendors ?? 0} accent="bg-sky-500/10 text-sky-600" delay={0.3} />
+          <StatCard icon={Shield} label="Security Officers" value={summary?.officers ?? 0} accent="bg-sky-500/10 text-sky-600" delay={0.35} />
           <StatCard icon={MapPin} label="Post Sites" value={summary?.post_sites ?? 0} accent="bg-fuchsia-500/10 text-fuchsia-600" delay={0.4} />
         </div>
       )}

@@ -17,7 +17,7 @@ const NotificationBell = () => {
 
   const fetchNotifs = async () => {
     try {
-      const { data } = await api.get('/notifications');
+      const { data } = await api.get(window.location.pathname.startsWith('/client') ? '/portal/notifications' : '/notifications');
       setNotifs(data);
     } catch (e) { /* ignore */ }
   };
@@ -68,7 +68,7 @@ const NotificationBell = () => {
   const unread = notifs.filter((n) => !n.read).length;
 
   const handleMarkAllRead = async () => {
-    await api.post('/notifications/read-all');
+    await api.post(window.location.pathname.startsWith('/client') ? '/portal/notifications/read-all' : '/notifications/read-all');
     fetchNotifs();
   };
 
@@ -88,7 +88,7 @@ const NotificationBell = () => {
         <DropdownMenuLabel className="flex items-center justify-between">
           Notifications
           {unread > 0 && (
-            <button onClick={handleMarkAllRead} className="text-xs text-[#4F46E5] hover:underline">Mark all read</button>
+            <button onClick={handleMarkAllRead} className="text-xs text-[#0EA5E9] hover:underline">Mark all read</button>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -98,7 +98,7 @@ const NotificationBell = () => {
           notifs.slice(0, 10).map((n) => (
             <DropdownMenuItem key={n.id} className="flex-col items-start py-3">
               <div className="flex items-start gap-2 w-full">
-                {!n.read && <div className="w-2 h-2 rounded-full bg-[#4F46E5] mt-1.5"></div>}
+                {!n.read && <div className="w-2 h-2 rounded-full bg-[#0EA5E9] mt-1.5"></div>}
                 <div className="flex-1">
                   <p className={`text-sm ${!n.read ? 'font-semibold' : ''} text-[#0F172A] dark:text-[#FAFAFA]`}>{n.title}</p>
                   <p className="text-xs text-[#64748B] mt-0.5">{n.message}</p>

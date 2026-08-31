@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Lock, User, Palette, Shield, Building2, MapPin, Droplet, Mail } from 'lucide-react';
+import { Bell, Lock, User, Palette, Shield, Building2, MapPin, Droplet, Mail, Monitor } from 'lucide-react';
 import useAuthStore from '@/stores/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { toast } from '@/components/ui/sonner';
@@ -15,6 +15,7 @@ import BrandingTab from '@/components/settings/BrandingTab';
 import OfficeLocationsTab from '@/components/settings/OfficeLocationsTab';
 import ColorsTab from '@/components/settings/ColorsTab';
 import EmailSettingsTab from '@/components/settings/EmailSettingsTab';
+import ClientLoginTab from '@/components/settings/ClientLoginTab';
 
 const SettingsPage = () => {
   const { user } = useAuthStore();
@@ -80,6 +81,12 @@ const SettingsPage = () => {
               Email
             </TabsTrigger>
           )}
+          {isAdmin && (
+            <TabsTrigger value="client-login" data-testid="tab-client-login" className="shrink-0">
+              <Monitor className="w-4 h-4 mr-2" />
+              Client Login
+            </TabsTrigger>
+          )}
           </TabsList>
         </div>
 
@@ -92,14 +99,14 @@ const SettingsPage = () => {
               <div className="flex items-center gap-6">
                 <Avatar className="w-24 h-24">
                   <AvatarImage src={user?.avatar_path} />
-                  <AvatarFallback className="bg-[#4F46E5] text-white text-3xl">
+                  <AvatarFallback className="bg-[#0EA5E9] text-white text-3xl">
                     {user?.name?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="text-xl font-semibold text-[#0F172A] dark:text-[#FAFAFA]">{user?.name}</h3>
                   <p className="text-[#64748B] dark:text-[#A1A1AA]">{user?.email}</p>
-                  <p className="text-sm text-[#4F46E5] mt-1 capitalize">{user?.role?.replace('_', ' ')}</p>
+                  <p className="text-sm text-[#0EA5E9] mt-1 capitalize">{user?.role?.replace('_', ' ')}</p>
                 </div>
               </div>
 
@@ -122,7 +129,7 @@ const SettingsPage = () => {
                 </div>
               </div>
 
-              <Button onClick={() => toast.success('Profile updated')} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="save-profile-button">
+              <Button onClick={() => toast.success('Profile updated')} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="save-profile-button">
                 Save Changes
               </Button>
             </CardContent>
@@ -147,7 +154,7 @@ const SettingsPage = () => {
                 <Label>Confirm New Password</Label>
                 <Input type="password" data-testid="confirm-password-input" />
               </div>
-              <Button onClick={() => toast.success('Password changed')} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="change-password-button">
+              <Button onClick={() => toast.success('Password changed')} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="change-password-button">
                 Change Password
               </Button>
             </CardContent>
@@ -239,6 +246,11 @@ const SettingsPage = () => {
         {isAdmin && (
           <TabsContent value="email">
             <EmailSettingsTab />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="client-login">
+            <ClientLoginTab />
           </TabsContent>
         )}
       </Tabs>

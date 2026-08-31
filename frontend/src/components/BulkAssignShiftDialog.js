@@ -131,7 +131,7 @@ const BulkAssignShiftDialog = ({ open, onOpenChange, employees, onDone }) => {
                   <button
                     key={d} type="button"
                     onClick={() => toggleDay(i + 1)}
-                    className={`px-3 py-1 rounded-full text-sm border ${form.days_of_week.includes(i + 1) ? 'bg-[#4F46E5] text-white border-[#4F46E5]' : 'border-[#E2E8F0] dark:border-[#27272A] text-[#64748B]'}`}
+                    className={`px-3 py-1 rounded-full text-sm border ${form.days_of_week.includes(i + 1) ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'border-[#E2E8F0] dark:border-[#27272A] text-[#64748B]'}`}
                     data-testid={`bulk-day-${i + 1}`}
                   >{d}</button>
                 ))}
@@ -146,7 +146,7 @@ const BulkAssignShiftDialog = ({ open, onOpenChange, employees, onDone }) => {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} disabled={busy} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="bulk-submit">
+          <Button onClick={submit} disabled={busy} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="bulk-submit">
             {busy ? 'Assigning…' : `Assign to ${selected.length} employee${selected.length === 1 ? '' : 's'}`}
           </Button>
         </DialogFooter>

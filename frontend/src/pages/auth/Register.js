@@ -64,7 +64,7 @@ const Register = () => {
         >
           <div className="bg-white dark:bg-[#18181B] rounded-xl border border-[#E2E8F0] dark:border-[#27272A] p-8 shadow-sm">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-[#4F46E5] rounded-xl mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-[#0EA5E9] rounded-xl mb-4">
                 <UserPlus className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-[#0F172A] dark:text-[#FAFAFA] tracking-tight mb-2">
@@ -169,7 +169,7 @@ const Register = () => {
                 type="submit"
                 data-testid="register-submit-button"
                 disabled={isLoading}
-                className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white h-11 rounded-lg transition-colors"
+                className="w-full bg-[#0EA5E9] hover:bg-[#0284C7] text-white h-11 rounded-lg transition-colors"
               >
                 {isLoading ? 'Creating account...' : 'Create Account'}
               </Button>
@@ -181,7 +181,7 @@ const Register = () => {
                 <Link
                   to="/login"
                   data-testid="login-link"
-                  className="text-[#4F46E5] hover:text-[#4338CA] dark:text-[#6366F1] dark:hover:text-[#818CF8] font-medium transition-colors"
+                  className="text-[#0EA5E9] hover:text-[#0284C7] dark:text-[#0EA5E9] dark:hover:text-[#38BDF8] font-medium transition-colors"
                 >
                   Sign in
                 </Link>
@@ -191,7 +191,7 @@ const Register = () => {
         </motion.div>
       </div>
 
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#7C3AED] to-[#4F46E5] items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0369A1] to-[#0EA5E9] items-center justify-center p-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

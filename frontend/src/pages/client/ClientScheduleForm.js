@@ -154,7 +154,7 @@ export default function ClientScheduleForm({ open, onOpenChange, editing, defaul
             <Button variant="ghost" className="text-red-600 mr-auto" onClick={remove} data-testid="sf-delete">Delete</Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={saving} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="sf-save">
+          <Button onClick={submit} disabled={saving} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="sf-save">
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </DialogFooter>

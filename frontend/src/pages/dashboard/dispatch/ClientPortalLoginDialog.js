@@ -122,7 +122,7 @@ export default function ClientPortalLoginDialog({ client }) {
               </Button>
             )}
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={loading} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="save-portal-login">
+            <Button onClick={save} disabled={loading} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="save-portal-login">
               {loading ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>

@@ -95,7 +95,7 @@ const ShiftsPage = () => {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
     <div data-testid="shifts-page">
@@ -115,7 +115,7 @@ const ShiftsPage = () => {
             </Button>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="assign-shift-button">
+              <Button className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="assign-shift-button">
                 <Plus className="w-5 h-5 mr-2" /> Assign Shift
               </Button>
             </DialogTrigger>
@@ -143,14 +143,14 @@ const ShiftsPage = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <button type="button" onClick={() => setForm({ ...form, work_location: 'in_office' })}
                       data-testid="shift-loc-office"
-                      className={`p-4 rounded-lg border-2 ${form.work_location === 'in_office' ? 'border-[#4F46E5] bg-[#4F46E5]/5' : 'border-[#E2E8F0] dark:border-[#27272A]'}`}>
-                      <Building className={`w-6 h-6 mx-auto mb-2 ${form.work_location === 'in_office' ? 'text-[#4F46E5]' : 'text-[#64748B]'}`} />
+                      className={`p-4 rounded-lg border-2 ${form.work_location === 'in_office' ? 'border-[#0EA5E9] bg-[#0EA5E9]/5' : 'border-[#E2E8F0] dark:border-[#27272A]'}`}>
+                      <Building className={`w-6 h-6 mx-auto mb-2 ${form.work_location === 'in_office' ? 'text-[#0EA5E9]' : 'text-[#64748B]'}`} />
                       <p className="text-sm font-medium text-[#0F172A] dark:text-[#FAFAFA]">In Office</p>
                     </button>
                     <button type="button" onClick={() => setForm({ ...form, work_location: 'work_from_home' })}
                       data-testid="shift-loc-wfh"
-                      className={`p-4 rounded-lg border-2 ${form.work_location === 'work_from_home' ? 'border-[#4F46E5] bg-[#4F46E5]/5' : 'border-[#E2E8F0] dark:border-[#27272A]'}`}>
-                      <Home className={`w-6 h-6 mx-auto mb-2 ${form.work_location === 'work_from_home' ? 'text-[#4F46E5]' : 'text-[#64748B]'}`} />
+                      className={`p-4 rounded-lg border-2 ${form.work_location === 'work_from_home' ? 'border-[#0EA5E9] bg-[#0EA5E9]/5' : 'border-[#E2E8F0] dark:border-[#27272A]'}`}>
+                      <Home className={`w-6 h-6 mx-auto mb-2 ${form.work_location === 'work_from_home' ? 'text-[#0EA5E9]' : 'text-[#64748B]'}`} />
                       <p className="text-sm font-medium text-[#0F172A] dark:text-[#FAFAFA]">Work from Home</p>
                     </button>
                   </div>
@@ -174,7 +174,7 @@ const ShiftsPage = () => {
                       return (
                         <button key={d} type="button" onClick={() => toggleDay(num)}
                           data-testid={`shift-day-${d.toLowerCase()}`}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${active ? 'bg-[#4F46E5] text-white border-[#4F46E5]' : 'border-[#E2E8F0] dark:border-[#27272A] text-[#64748B]'}`}>
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${active ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'border-[#E2E8F0] dark:border-[#27272A] text-[#64748B]'}`}>
                           {d}
                         </button>
                       );
@@ -194,7 +194,7 @@ const ShiftsPage = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreate} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="submit-shift-button">Assign Shift</Button>
+                <Button onClick={handleCreate} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="submit-shift-button">Assign Shift</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

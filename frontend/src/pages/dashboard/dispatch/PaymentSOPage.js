@@ -172,7 +172,7 @@ const ClientList = ({ onOpen }) => {
             {clients.map((c) => (
               <tr key={c.id} className="hover:bg-[#F8FAFC] dark:hover:bg-[#27272A]" data-testid={`so-client-row-${c.id}`}>
                 <td className="px-4 py-3">
-                  <button onClick={() => onOpen(c)} className="font-medium text-[#4F46E5] hover:underline" data-testid={`so-client-name-${c.id}`}>
+                  <button onClick={() => onOpen(c)} className="font-medium text-[#0EA5E9] hover:underline" data-testid={`so-client-name-${c.id}`}>
                     {c.name || '—'}
                   </button>
                 </td>
@@ -259,7 +259,7 @@ const ClientView = ({ client, onBack, onOpenOfficer }) => {
             <p className="text-sm text-[#64748B]">Client Code: <span className="font-mono">{client.code || '—'}</span></p>
           </div>
         </div>
-        <Button className="bg-[#4F46E5] hover:bg-[#4338CA]" onClick={() => setDialogOpen(true)} data-testid="so-add-new-payment">
+        <Button className="bg-[#0EA5E9] hover:bg-[#0284C7]" onClick={() => setDialogOpen(true)} data-testid="so-add-new-payment">
           <Plus className="w-4 h-4 mr-2" /> Add New Payment
         </Button>
       </div>
@@ -312,7 +312,7 @@ const ClientView = ({ client, onBack, onOpenOfficer }) => {
               <tr key={r.officer_id} data-testid={`so-record-row-${r.officer_id}`}>
                 <td className="px-3 py-2.5">{r.sl}</td>
                 <td className="px-3 py-2.5">
-                  <button onClick={() => openOfficer(r)} className="font-medium text-[#4F46E5] hover:underline" data-testid={`so-officer-name-${r.officer_id}`}>
+                  <button onClick={() => openOfficer(r)} className="font-medium text-[#0EA5E9] hover:underline" data-testid={`so-officer-name-${r.officer_id}`}>
                     {r.officer_name || '—'}
                   </button>
                 </td>
@@ -443,7 +443,7 @@ const OfficerDetail = ({ officer, onBack }) => {
           <Button variant="outline" onClick={() => download('xlsx')} data-testid="so-officer-download-excel">
             <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel
           </Button>
-          <Button className="bg-[#4F46E5] hover:bg-[#4338CA]" onClick={() => { setEditingRecord(null); setDialogOpen(true); }} data-testid="so-officer-add-payment">
+          <Button className="bg-[#0EA5E9] hover:bg-[#0284C7]" onClick={() => { setEditingRecord(null); setDialogOpen(true); }} data-testid="so-officer-add-payment">
             <Plus className="w-4 h-4 mr-2" /> Add Payment
           </Button>
         </div>
@@ -615,7 +615,7 @@ const PaymentDialog = ({ open, setOpen, client, fixedOfficer, editingRecord, onS
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="so-payment-submit">
+          <Button onClick={save} disabled={saving} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="so-payment-submit">
             {saving ? 'Saving…' : (editingRecord ? 'Update' : 'Submit')}
           </Button>
         </DialogFooter>

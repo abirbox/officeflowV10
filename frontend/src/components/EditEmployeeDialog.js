@@ -151,7 +151,7 @@ const EditEmployeeDialog = ({ open, onOpenChange, employee, onChanged }) => {
             </div>
             <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-[#F8FAFC] dark:bg-[#27272A]">
               <span className="text-sm text-[#64748B]">Gross Monthly Salary</span>
-              <span className="text-base font-bold text-[#4F46E5]" data-testid="edit-emp-gross">{grossSalary.toLocaleString()}</span>
+              <span className="text-base font-bold text-[#0EA5E9]" data-testid="edit-emp-gross">{grossSalary.toLocaleString()}</span>
             </div>
           </div>
           <div className="pt-2 border-t border-[#E2E8F0] dark:border-[#27272A]">
@@ -173,7 +173,7 @@ const EditEmployeeDialog = ({ open, onOpenChange, employee, onChanged }) => {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={save} disabled={busy !== null} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="save-employee-button">
+            <Button onClick={save} disabled={busy !== null} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="save-employee-button">
               {busy === 'save' ? 'Saving…' : 'Save Changes'}
             </Button>
           </div>

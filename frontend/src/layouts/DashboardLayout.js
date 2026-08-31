@@ -173,9 +173,9 @@ const DashboardLayout = () => {
               <button
                 onClick={() => choosePortal('employee')}
                 data-testid="portal-select-employee"
-                className="group flex flex-col items-center gap-3 p-6 rounded-xl border border-[#E2E8F0] dark:border-[#27272A] hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors"
+                className="group flex flex-col items-center gap-3 p-6 rounded-xl border border-[#E2E8F0] dark:border-[#27272A] hover:border-[#0EA5E9] hover:bg-[#0EA5E9]/5 transition-colors"
               >
-                <span className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 text-[#4F46E5] flex items-center justify-center">
+                <span className="w-12 h-12 rounded-xl bg-[#0EA5E9]/10 text-[#0EA5E9] flex items-center justify-center">
                   <Briefcase className="w-6 h-6" />
                 </span>
                 <span className="font-semibold text-[#0F172A] dark:text-[#FAFAFA]">Go to Employee Portal</span>
@@ -184,9 +184,9 @@ const DashboardLayout = () => {
               <button
                 onClick={() => choosePortal('dispatch')}
                 data-testid="portal-select-dispatch"
-                className="group flex flex-col items-center gap-3 p-6 rounded-xl border border-[#E2E8F0] dark:border-[#27272A] hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 transition-colors"
+                className="group flex flex-col items-center gap-3 p-6 rounded-xl border border-[#E2E8F0] dark:border-[#27272A] hover:border-[#0EA5E9] hover:bg-[#0EA5E9]/5 transition-colors"
               >
-                <span className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 text-[#4F46E5] flex items-center justify-center">
+                <span className="w-12 h-12 rounded-xl bg-[#0EA5E9]/10 text-[#0EA5E9] flex items-center justify-center">
                   <Truck className="w-6 h-6" />
                 </span>
                 <span className="font-semibold text-[#0F172A] dark:text-[#FAFAFA]">Go to Dispatch Portal</span>
@@ -263,7 +263,7 @@ const DashboardLayout = () => {
                   data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                     active
-                      ? 'bg-[#4F46E5] text-white'
+                      ? 'bg-[#0EA5E9] text-white'
                       : 'text-[#64748B] dark:text-[#A1A1AA] hover:bg-[#F1F5F9] dark:hover:bg-[#27272A] hover:text-[#0F172A] dark:hover:text-[#FAFAFA]'
                   }`}
                 >
@@ -286,7 +286,7 @@ const DashboardLayout = () => {
             {activeDispatchOps.length > 0 && (
               <>
                 {sidebarOpen && (
-                  <div className="pt-3 pb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-[#4F46E5] dark:text-[#A5B4FC]" data-testid="nav-group-operations">
+                  <div className="pt-3 pb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-[#0EA5E9] dark:text-[#A5B4FC]" data-testid="nav-group-operations">
                     Dispatch Operations
                   </div>
                 )}
@@ -299,7 +299,7 @@ const DashboardLayout = () => {
                       onClick={() => navigate(item.href)}
                       data-testid={`nav-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                        active ? 'bg-[#4F46E5] text-white'
+                        active ? 'bg-[#0EA5E9] text-white'
                           : 'text-[#64748B] dark:text-[#A1A1AA] hover:bg-[#F1F5F9] dark:hover:bg-[#27272A] hover:text-[#0F172A] dark:hover:text-[#FAFAFA]'
                       }`}
                     >
@@ -332,7 +332,7 @@ const DashboardLayout = () => {
                       onClick={() => navigate(item.href)}
                       data-testid={`nav-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                        active ? 'bg-[#4F46E5] text-white'
+                        active ? 'bg-[#0EA5E9] text-white'
                           : 'text-[#64748B] dark:text-[#A1A1AA] hover:bg-[#F1F5F9] dark:hover:bg-[#27272A] hover:text-[#0F172A] dark:hover:text-[#FAFAFA]'
                       }`}
                     >
@@ -353,7 +353,7 @@ const DashboardLayout = () => {
               <button
                 onClick={switchPortal}
                 data-testid="switch-portal-button"
-                className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-dashed border-[#4F46E5]/40 text-[#4F46E5] hover:bg-[#4F46E5]/10 transition-colors"
+                className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-dashed border-[#0EA5E9]/40 text-[#0EA5E9] hover:bg-[#0EA5E9]/10 transition-colors"
               >
                 <ArrowLeftRight className="w-5 h-5 flex-shrink-0" />
                 <AnimatePresence>
@@ -377,7 +377,7 @@ const DashboardLayout = () => {
                 >
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={user?.avatar_path} />
-                    <AvatarFallback className="bg-[#4F46E5] text-white text-sm">
+                    <AvatarFallback className="bg-[#0EA5E9] text-white text-sm">
                       {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -473,7 +473,7 @@ const DashboardLayout = () => {
                 <button
                   onClick={switchPortal}
                   data-testid="mobile-switch-portal-button"
-                  className="mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-dashed border-[#4F46E5]/40 text-[#4F46E5] hover:bg-[#4F46E5]/10"
+                  className="mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-dashed border-[#0EA5E9]/40 text-[#0EA5E9] hover:bg-[#0EA5E9]/10"
                 >
                   <ArrowLeftRight className="w-5 h-5" />
                   <span className="text-sm font-medium">

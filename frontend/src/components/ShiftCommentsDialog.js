@@ -16,7 +16,7 @@ const roleBadge = (role) => {
   if (!role) return null;
   const isAdmin = ['super_admin', 'admin', 'hr', 'manager'].includes(role);
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded ${isAdmin ? 'bg-[#4F46E5]/10 text-[#4F46E5]' : 'bg-[#64748B]/10 text-[#64748B]'}`}>
+    <span className={`text-[10px] px-1.5 py-0.5 rounded ${isAdmin ? 'bg-[#0EA5E9]/10 text-[#0EA5E9]' : 'bg-[#64748B]/10 text-[#64748B]'}`}>
       {role}
     </span>
   );
@@ -89,7 +89,7 @@ const ShiftCommentsDialog = ({ open, onOpenChange, shift, currentUserId }) => {
                 <div key={c.id} className={`flex gap-2 ${mine ? 'flex-row-reverse' : ''}`} data-testid={`shift-comment-${c.id}`}>
                   <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarImage src={c.author_avatar} />
-                    <AvatarFallback className="bg-[#4F46E5] text-white text-xs">
+                    <AvatarFallback className="bg-[#0EA5E9] text-white text-xs">
                       {(c.author_name || 'U').charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -102,7 +102,7 @@ const ShiftCommentsDialog = ({ open, onOpenChange, shift, currentUserId }) => {
                     </div>
                     <div className={`rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words ${
                       mine
-                        ? 'bg-[#4F46E5] text-white rounded-tr-sm'
+                        ? 'bg-[#0EA5E9] text-white rounded-tr-sm'
                         : 'bg-[#F1F5F9] dark:bg-[#27272A] text-[#0F172A] dark:text-[#FAFAFA] rounded-tl-sm'
                     }`}>
                       {c.body}
@@ -132,7 +132,7 @@ const ShiftCommentsDialog = ({ open, onOpenChange, shift, currentUserId }) => {
           <Button
             onClick={send}
             disabled={sending || !body.trim()}
-            className="bg-[#4F46E5] hover:bg-[#4338CA] h-[60px] px-4"
+            className="bg-[#0EA5E9] hover:bg-[#0284C7] h-[60px] px-4"
             data-testid="shift-comment-send"
           >
             <Send className="w-4 h-4" />

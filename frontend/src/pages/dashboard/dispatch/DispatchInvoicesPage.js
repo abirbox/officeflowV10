@@ -366,7 +366,7 @@ const DispatchInvoicesPage = () => {
           <h1 className="text-2xl font-bold text-[#0F172A] dark:text-[#FAFAFA]">Invoices</h1>
           <p className="text-sm text-[#64748B]">Generate branded Client → Vendor invoices from completed dispatch shifts.</p>
         </div>
-        <Button onClick={openDialog} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="generate-invoice-btn">
+        <Button onClick={openDialog} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="generate-invoice-btn">
           <Plus className="w-4 h-4 mr-2" /> Generate Invoice
         </Button>
       </div>
@@ -664,7 +664,7 @@ const DispatchInvoicesPage = () => {
               <Download className="w-4 h-4 mr-2" /> Download PDF (no save)
             </Button>
             <div className="flex-1" />
-            <Button onClick={saveInvoice} disabled={!canPreview || saving} className="bg-[#4F46E5] hover:bg-[#4338CA]" data-testid="inv-save-btn">
+            <Button onClick={saveInvoice} disabled={!canPreview || saving} className="bg-[#0EA5E9] hover:bg-[#0284C7]" data-testid="inv-save-btn">
               <FileText className="w-4 h-4 mr-2" />{saving ? 'Saving…' : (editingId ? 'Update & Download' : 'Save & Download')}
             </Button>
           </div>

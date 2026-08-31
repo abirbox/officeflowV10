@@ -36,7 +36,7 @@ const DashboardHome = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -123,7 +123,7 @@ const DashboardHome = () => {
                     >
                       <Avatar>
                         <AvatarImage src={emp.avatar_path} />
-                        <AvatarFallback className="bg-[#4F46E5] text-white">
+                        <AvatarFallback className="bg-[#0EA5E9] text-white">
                           {emp.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -158,11 +158,11 @@ const DashboardHome = () => {
               <div className="space-y-3">
                 <button
                   onClick={() => navigate('/dashboard/employees')}
-                  className="w-full p-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg transition-colors text-left"
+                  className="w-full p-4 bg-[#0EA5E9] hover:bg-[#0284C7] text-white rounded-lg transition-colors text-left"
                   data-testid="manage-employees-button"
                 >
                   <p className="font-medium">Manage Employees</p>
-                  <p className="text-sm text-indigo-100">Add, edit, change roles</p>
+                  <p className="text-sm text-sky-100">Add, edit, change roles</p>
                 </button>
                 <button
                   onClick={() => navigate('/dashboard/shifts')}

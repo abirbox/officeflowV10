@@ -16,7 +16,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const StatCard = ({ icon: Icon, label, value, sub, tone = 'indigo', testId }) => {
   const tones = {
-    indigo: 'bg-[#4F46E5]/10 text-[#4F46E5]',
+    indigo: 'bg-[#0EA5E9]/10 text-[#0EA5E9]',
     green: 'bg-green-500/10 text-green-600',
     orange: 'bg-orange-500/10 text-orange-600',
     blue: 'bg-blue-500/10 text-blue-600',
@@ -128,7 +128,7 @@ const ReportsPage = () => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   if (loading || !summary) return (
-    <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div></div>
+    <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin"></div></div>
   );
 
   return (
@@ -136,7 +136,7 @@ const ReportsPage = () => {
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-bold text-[#0F172A] dark:text-[#FAFAFA] tracking-tight mb-2 flex items-center gap-3">
-            <BarChart3 className="w-8 h-8 text-[#4F46E5]" /> Reports
+            <BarChart3 className="w-8 h-8 text-[#0EA5E9]" /> Reports
           </h1>
           <p className="text-[#64748B] dark:text-[#A1A1AA] text-lg">
             {MONTHS[month-1]} {year} · consolidated view of attendance, payroll, overtime, leaves and shifts
@@ -166,7 +166,7 @@ const ReportsPage = () => {
           { id: 'overtime', label: `Overtime (${overtime.total})`, icon: TrendingUp },
         ].map((t) => (
           <Button key={t.id} variant={tab === t.id ? 'default' : 'outline'} onClick={() => setTab(t.id)}
-            className={tab === t.id ? 'bg-[#4F46E5] hover:bg-[#4338CA]' : ''}
+            className={tab === t.id ? 'bg-[#0EA5E9] hover:bg-[#0284C7]' : ''}
             data-testid={`report-tab-${t.id}`}>
             <t.icon className="w-4 h-4 mr-2" /> {t.label}
           </Button>

@@ -26,6 +26,21 @@ const DEFAULTS = {
   tz_offset_hours: 6.0,
   not_found_lottie_enabled: true,
   not_found_lottie_url: null,
+  client_login_badge: 'Client Portal',
+  client_login_title: 'Client Sign In',
+  client_login_subtitle: 'Sign in to view your schedules, invoices and reports',
+  client_login_hero_title: 'Client Portal',
+  client_login_hero_subtitle: 'Live dispatch schedules, invoices, wage reports and post-site coverage — everything you need to keep your operation on track.',
+  client_login_email_label: 'Client Email',
+  client_login_password_label: 'Password',
+  client_login_button_text: 'Sign In to Client Portal',
+  client_login_employee_text: 'Employees and admins:',
+  client_login_employee_link_text: 'use the main sign-in',
+  client_login_contact_text: "Don't have client access? Contact your administrator.",
+  client_login_primary_color: '#0EA5E9',
+  client_login_primary_hover_color: '#0284C7',
+  client_login_hero_start_color: '#0EA5E9',
+  client_login_hero_end_color: '#0369A1',
 };
 
 const applyBranding = (s) => {
@@ -54,6 +69,7 @@ export const AppSettingsProvider = ({ children }) => {
       applyBranding({ ...DEFAULTS, ...data });
     } catch {
       setSettings(DEFAULTS);
+      applyBranding(DEFAULTS);
     } finally {
       setLoading(false);
     }

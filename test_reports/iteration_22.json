@@ -1,0 +1,33 @@
+{
+  "summary": "Verified the officer-payslip PDF cell-wrap fix (backend/utils/dispatch_reports.py -> build_officer_payslip_pdf). Wrote pytest regression that logs in as admin, generates + downloads the payslip PDF via /api/dispatch/payslip-records{,/{id}/pdf}, and uses pdfplumber to assert (a) HTTP 200 + body starts with %PDF, (b) every expected column header token is present, (c) NO word extends past the right page margin (proves cells wrap instead of overflowing), and (d) after seeding a schedule with a long post-site name + very long remarks, both long strings appear in the extracted PDF text (wrapped across multiple lines inside their own cell). Also drove the UI end-to-end (admin login -> Dispatch Portal -> Wage Report -> By Officer -> officer detail dialog -> Generate & Save Payslip PDF) and confirmed data-testid='entity-detail-dialog','payslip-table','payslip-header','generate-payslip' render and that clicking 'generate-payslip' produces the 'preview-payslip-<id>' link.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verified_behaviors": [
+    "POST /api/dispatch/payslip-records -> 200, returns saved record with id, gross, net_payment, officer_name, client_name, pdf_url",
+    "GET  /api/dispatch/payslip-records/{id}/pdf -> 200, Content starts with b'%PDF', body > 3KB",
+    "pdfplumber extraction shows all column tokens (Date, Shift, Start, End, Time, Duty, Hour, Hourly, Rate, Total, Post, Site, Name, City, Pin, Remarks) - 'Duty Hours' visibly wrapped as 'Duty Hour' + 's' inside its own cell, exactly the intended behaviour of wordWrap='CJK'",
+    "No PDF word crosses the right page margin (0.5-inch) on any page for either the default or the long-text-seeded payslip",
+    "After updating a schedule with post_site_name='VeryLongPostSiteNameForWrapVerificationAlphaBravoCharlieDeltaEcho' and a ~200-char remarks value, both values appear (wrapped) in the extracted text of the regenerated PDF",
+    "UI: officer payslip dialog renders payslip-table + payslip-header; clicking generate-payslip creates preview-payslip-<id> links successfully"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_payslip_pdf.py",
+    "/app/test_reports/pytest/payslip_pdf.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "build_officer_payslip_pdf uses fixed 8pt/leading 10 for cells and wordWrap='CJK'. CJK wraps mid-word (byte-by-byte), which is what fixes the overflow but produces mid-word breaks like 'VeryLong\\nPostSite...'. If the design wants word-boundary wrapping for ASCII-heavy content, consider ParagraphStyle wordWrap=None (default) with allowSplitting and slightly wider column weights, so wrapping happens at natural word breaks and CJK is only used as fallback.",
+    "The 'city' and 'post_pin' fields for a schedule row come from the post-site document, not the schedule itself, so PUT /api/dispatch/schedules/{sid} with {city, post_pin} silently ignores them. From a bug-testing perspective this made seeding long values harder; not a functional bug in the PDF fix but worth exposing an admin-side way to override per-schedule (or updating the post-site doc directly).",
+    "dispatch_reports.py is now 2699 lines and mixes several PDF builders. Consider splitting into report-specific modules (payslip, invoice, advance) for maintainability."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_payslip_pdf.py (new regression test)"
+  ],
+  "success_rate": {"backend": "100% (5/5 pytest cases pass)", "frontend": "100% (dialog + generate + preview link verified)"},
+  "test_credentials": "Admin: admin@example.com / admin123",
+  "seed_data_creation": "Test updates an existing Aug-2026 dispatch schedule for officer 'Abir Vai' (client Arseas Security Services INC) with long post_site_name + long remarks in-flight, then regenerates the payslip. No new schedules created; test is idempotent and re-runnable.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression file at /app/backend/tests/test_payslip_pdf.py. Run with: REACT_APP_BACKEND_URL=<url> pytest backend/tests/test_payslip_pdf.py -v -o addopts=''. Note that /app/backend/pytest.ini forces pytest-xdist which spawns 2 workers - the module-scoped session fixture is safe but pytest.PAYSLIP_PDF_BYTES sharing across tests requires them to run in the same worker (they do because of loadscope). If the Aug-2026 seed data is wiped, the fixture falls back to 2025-01-01..2027-12-31 to find any schedule.",
+  "rca of the issue": "Fix verified. Root cause pre-fix: payslip table cells were raw strings which ReportLab renders as a single non-wrapping line, causing long post site names / remarks / pins to spill past their column boundary. Fix wraps every header/body/footer cell in a Paragraph with ParagraphStyle(wordWrap='CJK'). Verification: pdfplumber shows the wrapped long remarks 'This is an intentionally very\\nlong remarks value used to\\nverify that ReportLab wraps\\nthe content inside the cell\\n...' and the assertion 'no word x1 > (page.width - 0.5in)' passes on the long-text payslip PDF."
+}

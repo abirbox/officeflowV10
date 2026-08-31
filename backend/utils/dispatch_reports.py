@@ -709,6 +709,43 @@ def build_officer_payslip_pdf(
 
     header_labels = [h for h, _ in columns]
 
+    # Wrap EVERY cell in a Paragraph so long text wraps INSIDE its column
+    # instead of overflowing / overlapping into neighbouring cells. Raw string
+    # cells in ReportLab render as a single non-wrapping line. Default word
+    # wrapping breaks normal text at spaces, and splitLongWords (default True)
+    # hard-breaks any single token too long for the column, so nothing ever
+    # spills outside its cell boundary regardless of length.
+    cell_style = ParagraphStyle(
+        'ps_cell', parent=styles['Normal'],
+        fontSize=8, leading=10, alignment=1, splitLongWords=1,
+    )
+    pin_cell_style = ParagraphStyle(
+        'ps_cell_pin', parent=cell_style,
+        fontName='Helvetica-Bold', textColor=colors.HexColor('#DC2626'),
+    )
+    header_cell_style = ParagraphStyle(
+        'ps_head', parent=styles['Normal'],
+        fontSize=8, leading=10, alignment=1, splitLongWords=1,
+        fontName='Helvetica-Bold', textColor=colors.HexColor('#0F172A'),
+    )
+    footer_cell_style = ParagraphStyle(
+        'ps_footer', parent=cell_style, fontName='Helvetica-Bold',
+    )
+
+    def _esc(s):
+        return (
+            str(s)
+            .replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+        )
+
+    pin_keys = {"post_pin_display", "post_pin"}
+
+    def _p(text, style):
+        txt = _esc(text).strip()
+        return Paragraph(txt if txt else "&nbsp;", style)
+
     body = []
     total_duty = 0.0
     total_amount = 0.0
@@ -720,25 +757,25 @@ def build_officer_payslip_pdf(
             v = r.get(k)
 
             if v is None:
-                line.append("")
+                val = ""
 
             elif k in ("hourly_rate", "total"):
-                line.append(
-                    f"${float(v):,.2f}" if v else ""
-                )
+                val = f"${float(v):,.2f}" if v else ""
 
             elif k == "duty_hours":
-                line.append(
+                val = (
                     f"{float(v):g}"
                     if isinstance(v, (int, float)) and v
                     else str(v)
                 )
 
             elif k == "date":
-                line.append(_fmt_date(v))
+                val = _fmt_date(v)
 
             else:
-                line.append(str(v))
+                val = str(v)
+
+            line.append(_p(val, pin_cell_style if k in pin_keys else cell_style))
 
         body.append(line)
 
@@ -747,7 +784,7 @@ def build_officer_payslip_pdf(
 
     # Footer totals row
 
-    footer = [""] * len(columns)
+    footer_vals = [""] * len(columns)
 
     def _colidx(key):
         for i, (_, k) in enumerate(columns):
@@ -759,12 +796,15 @@ def build_officer_payslip_pdf(
     fi_total = _colidx("total")
 
     if fi_duty >= 0:
-        footer[fi_duty] = f"{total_duty:g}"
+        footer_vals[fi_duty] = f"{total_duty:g}"
 
     if fi_total >= 0:
-        footer[fi_total] = f"${total_amount:,.2f}"
+        footer_vals[fi_total] = f"${total_amount:,.2f}"
 
-    data = [header_labels] + body + [footer]
+    header_row = [_p(h, header_cell_style) for h in header_labels]
+    footer_row = [_p(x, footer_cell_style) for x in footer_vals]
+
+    data = [header_row] + body + [footer_row]
 
     weights_by_key = {
         "date": 1.4,

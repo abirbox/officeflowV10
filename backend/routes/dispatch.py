@@ -25,7 +25,7 @@ from utils.permissions import (
     ALL_PERMISSIONS, FINANCIAL_FIELDS,
 )
 from utils.dispatch_reports import build_csv, build_pdf, build_xlsx
-from utils.tz import dhaka_today, dhaka_today_iso
+from utils.tz import dhaka_today, dhaka_today_iso, today_iso_in_tz
 
 # Temporary scheduling placeholders.
 # These are stored directly in officer_id and do not require
@@ -1796,10 +1796,10 @@ async def list_audit_actors(request: Request, db=Depends(get_db)):
 #  DASHBOARD  (aggregates)
 # =====================================================================
 @router.get("/dashboard/stats")
-async def dashboard_stats(request: Request, db=Depends(get_db)):
+async def dashboard_stats(request: Request, tz: str | None = None, db=Depends(get_db)):
     user = await get_current_user(request, db)
     require_permission(user, "dispatch.dashboard.view")
-    today = dhaka_today_iso()
+    today = today_iso_in_tz(tz)
     base = {"date": today}
     stats = {
         "today_total": await db.dispatch_schedules.count_documents(base),

@@ -57,3 +57,16 @@ def local_minutes_of_day(dt: datetime, tz_code: str = DEFAULT_TZ, offset_hours: 
 def local_date_iso(dt: Optional[datetime] = None, tz_code: str = DEFAULT_TZ, offset_hours: float = DEFAULT_OFFSET_HOURS) -> str:
     d = to_local(dt or datetime.now(timezone.utc), tz_code, offset_hours)
     return d.date().isoformat()
+
+
+def today_iso_in_tz(tz_code: Optional[str] = None) -> str:
+    """Today's ISO date computed in the given IANA timezone (viewer's local zone).
+
+    Falls back to the org default timezone when tz_code is missing/invalid.
+    """
+    if not tz_code:
+        return dhaka_today_iso()
+    try:
+        return datetime.now(timezone.utc).astimezone(ZoneInfo(tz_code)).date().isoformat()
+    except Exception:
+        return dhaka_today_iso()

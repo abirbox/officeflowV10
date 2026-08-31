@@ -1,0 +1,35 @@
+{
+  "summary": "Frontend-only verification of the new per-user local-timezone feature across the OfficeFlow admin dispatch portal and the client portal. Tested (1) timezone globe menu visibility with data-testid selectors, (2) Auto-detect + explicit zone options (America/New_York, Asia/Dhaka etc.), (3) reload-on-change and header label updates, (4) business-date invariance vs. timestamp shifting across Dispatch Schedule, Wage Report, Invoices, and Audit Log, (5) both admin and client portals expose the same menu with same testids.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_behaviors": [
+    "Admin login (admin@example.com/admin123) -> portal-select-dispatch -> DashboardLayout renders <TimezoneMenu/> with data-testid='timezone-menu-trigger' and data-testid='timezone-menu-label' showing the current abbreviation (e.g. UTC/EDT/GMT+6).",
+    "Opening the menu exposes data-testid='timezone-option-auto' (labelled 'Your device: <iana>'), data-testid='timezone-current-zone' ('Showing times in <iana> (<abbrev>)'), and the full IANA option list including America/New_York and Asia/Dhaka.",
+    "Selecting America/New_York triggers window.location.reload() and header label updates from UTC to EDT; selecting Asia/Dhaka updates to GMT+6; selecting Auto-detect restores the device zone.",
+    "Audit Log timestamps carry the zone abbreviation: '31 Aug 2026, 03:37 EDT' in NY vs '31 Aug 2026, 13:37 GMT+6' in Dhaka - exactly 10 hours offset, confirming true UTC->local conversion.",
+    "Business-date invariance: Dispatch Schedule dates ['01 Aug 2026','05 Aug 2026','10 Aug 2026','30 Aug 2026','30 Aug 2026'] are IDENTICAL in NY and Dhaka zones. Wage Report row DATE column ('2026-08-30') and START/END times (08:00, 16:00, 20:00) do not shift with tz.",
+    "Wage Report / Invoices / Audit Log pages all show zone tokens (EDT / GMT+6) matching the active zone label in the header.",
+    "Client portal (info@arseas.com/Client@123 at /client-portal/login) exposes the SAME data-testid='timezone-menu-trigger' in ClientPortalLayout and the same option testids; switching from NY to Dhaka on the client side reloads and updates all client Wage Report / Invoices / Schedule pages while keeping business dates fixed.",
+    "TimezoneProvider adopts server user.timezone on a fresh device with no local override (sessionStorage 'tz_synced' guards against reload loops)."
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "lib/datetime.js: ACTIVE_TZ is a module-level let mutated at runtime; because getActiveTimezone() is not reactive, changes only take effect after the deliberate window.location.reload(). This is intentional and documented, but consumers that read timezone without going through the reload will render stale values - keep this in mind for future incremental refactors.",
+    "TimezoneContext.setPreference() fires PUT /auth/me/timezone with .catch(() => {}) then unconditionally reloads. If the server call fails the UI still reloads with the new local override, so local and server can drift silently. Consider surfacing a toast on 4xx/5xx and/or awaiting the PUT before reload.",
+    "The Auto-detect option, once selected, clears server timezone (null) AND localStorage. On next mount, TimezoneProvider will re-adopt any server timezone written from another device - so 'Auto-detect' on device A can be silently overridden by device B's saved preference. Acceptable per spec (server value is the fallback), but worth documenting for users.",
+    "TIMEZONE_OPTIONS is hardcoded (~23 zones). If a user's IANA zone is exotic and they toggle Auto -> manual list, they won't find it. The Auto-detect entry mitigates this, but a searchable IANA picker would be more robust for global rollout."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not tested per request)", "frontend": "100%"},
+  "test_credentials": "Admin: admin@example.com/admin123 (Super Admin); Client: info@arseas.com/Client@123",
+  "seed_data_creation": "None. Reused existing schedules/audit rows (shift dates 01/05/10/30 Aug 2026, audit entries at 31 Aug 07:37 UTC).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Correct dispatch routes are under /dashboard/dispatch/... (schedules, reports, audit) - NOT /dispatch/... . Client routes are under /client-portal/... . TIMEZONE_OPTIONS is defined in /app/frontend/src/contexts/TimezoneContext.js. Timezone abbrev for US zones renders as EST/EDT (not GMT-5), and for Asia zones as GMT+N. Screenshot harness runs in UTC, so browser Auto-detect resolves to UTC unless localStorage/server override.",
+  "rca of the issue": "No bugs found. All acceptance criteria (menu presence, testids, reload-on-change, business-date invariance, timestamp+zone label rendering, both portals) verified end-to-end."
+}

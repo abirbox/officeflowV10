@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
+import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { SiteThemeProvider } from "@/contexts/SiteThemeContext";
 import { PresenceProvider } from "@/contexts/PresenceContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -47,6 +48,7 @@ function App() {
   return (
     <ThemeProvider>
       <AppSettingsProvider>
+        <TimezoneProvider>
         <SiteThemeProvider>
         <BrowserRouter>
         <Routes>
@@ -140,6 +142,7 @@ function App() {
         <Toaster />
         </BrowserRouter>
         </SiteThemeProvider>
+        </TimezoneProvider>
       </AppSettingsProvider>
     </ThemeProvider>
   );

@@ -4,7 +4,7 @@ from bson import ObjectId
 import secrets
 import os
 
-from models.user import UserCreate, UserLogin, UserResponse, ForgotPasswordRequest, ResetPasswordRequest
+from models.user import UserCreate, UserLogin, UserResponse, ForgotPasswordRequest, ResetPasswordRequest, TimezoneUpdate
 from utils.auth import hash_password, verify_password, create_access_token, create_refresh_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -158,6 +158,7 @@ async def login(credentials: UserLogin, request: Request, response: Response, db
         designation_id=user.get("designation_id"),
         permissions=user.get("permissions") or [],
         status=user.get("status", "active"),
+        timezone=user.get("timezone"),
         created_at=user["created_at"].isoformat() if isinstance(user["created_at"], datetime) else user["created_at"]
     )
 
@@ -189,6 +190,33 @@ async def get_me(request: Request, db = Depends(get_db)):
         designation_id=user.get("designation_id"),
         permissions=user.get("permissions") or [],
         status=user.get("status", "active"),
+        timezone=user.get("timezone"),
+        created_at=user["created_at"].isoformat() if isinstance(user["created_at"], datetime) else user["created_at"]
+    )
+
+@router.put("/me/timezone", response_model=UserResponse)
+async def update_my_timezone(payload: TimezoneUpdate, request: Request, db = Depends(get_db)):
+    user = await get_current_user(request, db)
+    tz = (payload.timezone or "").strip() or None
+    await db.users.update_one(
+        {"_id": ObjectId(user["_id"])},
+        {"$set": {"timezone": tz, "updated_at": datetime.now(timezone.utc)}}
+    )
+    return UserResponse(
+        id=user["_id"],
+        email=user["email"],
+        name=user["name"],
+        role=user.get("role", "employee"),
+        phone=user.get("phone"),
+        avatar_path=user.get("avatar_path"),
+        company_id=user.get("company_id"),
+        client_id=user.get("client_id"),
+        branch_id=user.get("branch_id"),
+        department_id=user.get("department_id"),
+        designation_id=user.get("designation_id"),
+        permissions=user.get("permissions") or [],
+        status=user.get("status", "active"),
+        timezone=tz,
         created_at=user["created_at"].isoformat() if isinstance(user["created_at"], datetime) else user["created_at"]
     )
 

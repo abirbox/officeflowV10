@@ -39,6 +39,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import NotificationBell from '@/components/NotificationBell';
+import TimezoneMenu from '@/components/TimezoneMenu';
 
 const navItems = [
   { name: 'Dashboard', href: '/client-portal/dashboard', icon: LayoutDashboard, end: true },
@@ -494,6 +495,7 @@ const ClientPortalLayout = () => {
             </div>
 
             <div className="flex items-center gap-1 md:gap-3 shrink-0">
+              <TimezoneMenu />
               <Button
                 variant="ghost"
                 size="icon"

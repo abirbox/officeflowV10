@@ -47,6 +47,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import NotificationBell from '@/components/NotificationBell';
 import LocationStreamer from '@/components/LocationStreamer';
+import TimezoneMenu from '@/components/TimezoneMenu';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 const allNavigation = [
@@ -540,6 +541,7 @@ const DashboardLayout = () => {
             </div>
 
             <div className="flex items-center gap-1 md:gap-3 shrink-0">
+              <TimezoneMenu />
               <Button
                 variant="ghost"
                 size="icon"

@@ -37,7 +37,11 @@ class UserResponse(BaseModel):
     designation_id: Optional[str] = None
     permissions: list = []
     status: str
+    timezone: Optional[str] = None
     created_at: str
+
+class TimezoneUpdate(BaseModel):
+    timezone: Optional[str] = None
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

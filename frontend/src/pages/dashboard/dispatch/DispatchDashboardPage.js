@@ -3,6 +3,7 @@ import { api } from '@/lib/axios';
 import { Users, Building2, MapPin, Shield, CheckCircle2, Clock, XCircle, AlertTriangle, LogIn, LogOut, HelpCircle } from 'lucide-react';
 import useAuthStore from '@/stores/authStore';
 import { hasPermission } from '@/lib/permissions';
+import { getActiveTimezone } from '@/lib/datetime';
 
 const REFRESH_MS = 10_000; // Live ticker refresh interval
 
@@ -41,7 +42,7 @@ const DispatchDashboardPage = () => {
   useEffect(() => {
     let cancelled = false;
     const load = () => {
-      api.get('/dispatch/dashboard/stats').then(({ data }) => { if (!cancelled) setStats(data); })
+      api.get('/dispatch/dashboard/stats', { params: { tz: getActiveTimezone() } }).then(({ data }) => { if (!cancelled) setStats(data); })
         .catch(() => { if (!cancelled) setStats({}); })
         .finally(() => { if (!cancelled) setLoading(false); });
     };

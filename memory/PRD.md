@@ -42,3 +42,19 @@ features, which V10 already incorporates.)
 
 ## Backlog / next
 - Optional: silence the harmless `/api/ws/dispatch` WebSocket warnings in preview.
+- Pending UI task (from earlier): style the dispatch "Clock Out" button (red bg, black text).
+
+## Per-user local timezone (2026-06)
+- Times now display in each viewer's own local timezone, auto-detected from the
+  browser/device on load (`Intl.DateTimeFormat().resolvedOptions().timeZone`).
+- Manual override available to every user + client via a globe menu in both top bars
+  (`components/TimezoneMenu.js`); persisted to `localStorage` and to the user account
+  (`PUT /api/auth/me/timezone`, `timezone` field on the user + in `/auth/me` & `/login`).
+- Business dates (schedule dates, wage-report months, invoice periods) stay FIXED for
+  everyone (rendered literally, never tz-shifted). Only real timestamps convert and carry
+  a short zone label (e.g. "13:37 GMT+6"). Implemented in `lib/datetime.js` (active-tz model)
+  and `contexts/TimezoneContext.js`.
+- Dispatch dashboard "today" counts follow the viewer's zone via `?tz=` →
+  `utils/tz.today_iso_in_tz`.
+- Verified: testing agent iteration_21 (real browser) — 100% frontend, business-date
+  invariance + timestamp conversion confirmed across admin + client portals.
